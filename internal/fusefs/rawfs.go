@@ -16,10 +16,10 @@ import (
 	"bazil.org/fuse/fs"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/gaby/EDRmount/internal/config"
-	"github.com/gaby/EDRmount/internal/jobs"
-	"github.com/gaby/EDRmount/internal/streamer"
-	"github.com/gaby/EDRmount/internal/subject"
+	"github.com/avogabo/AlfredEDR/internal/config"
+	"github.com/avogabo/AlfredEDR/internal/jobs"
+	"github.com/avogabo/AlfredEDR/internal/streamer"
+	"github.com/avogabo/AlfredEDR/internal/subject"
 )
 
 // chunkCache almacena chunks de datos en memoria para evitar re-descargas

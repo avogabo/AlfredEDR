@@ -48,7 +48,7 @@ async function refreshBackups() {
 
       const btn = el('button', { class: 'btn', text: 'Restaurar' });
       btn.onclick = async () => {
-        if (!confirm(`¿Restaurar backup ${it.name}?\n\nEDRmount se reiniciará.`)) return;
+        if (!confirm(`¿Restaurar backup ${it.name}?\n\nAlfredEDR se reiniciará.`)) return;
         status.textContent = 'Restaurando (reiniciará)...';
         try {
           await apiPostJson('/api/v1/backups/restore', { name: it.name });

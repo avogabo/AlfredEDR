@@ -1,6 +1,6 @@
-# EDRmount
+# AlfredEDR
 
-EDRmount convierte **NZBs → una biblioteca FUSE** con MKVs “virtuales” que se **descargan on‑demand**, e incluye una **UI web** para **Importar / Subir / Health (reparar)**.
+AlfredEDR convierte **NZBs → una biblioteca FUSE** con MKVs “virtuales” que se **descargan on‑demand**, e incluye una **UI web** para **Importar / Subir / Health (reparar)**.
 Pensado para que **Plex apunte a `library-auto`**.
 
 ## Quickstart (Docker Compose - recomendado)
@@ -9,9 +9,9 @@ Pensado para que **Plex apunte a `library-auto`**.
 
 ```yaml
 services:
-  edrmount:
-    image: ghcr.io/avogabo/edrmount:latest
-    container_name: edrmount
+  alfrededr:
+    image: ghcr.io/avogabo/alfrededr:latest
+    container_name: alfrededr
     restart: unless-stopped
     ports:
       - "1516:1516"
@@ -22,9 +22,9 @@ services:
     security_opt:
       - apparmor:unconfined
     volumes:
-      - /tu/ruta/a/edrmount/config:/config
-      - /tu/ruta/a/edrmount/cache:/cache
-      - /tu/ruta/a/edrmount/backups:/backups
+      - /tu/ruta/a/alfrededr/config:/config
+      - /tu/ruta/a/alfrededr/cache:/cache
+      - /tu/ruta/a/alfrededr/backups:/backups
       - /tu/ruta/a/tu-biblioteca-host:/host:rshared
 ```
 
@@ -33,7 +33,7 @@ UI: `http://<HOST>:1516/webui/`
 ### Validación rápida tras levantar
 
 ```bash
-docker inspect edrmount --format '{{range .Mounts}}{{println .Destination "->" .Propagation}}{{end}}'
+docker inspect alfrededr --format '{{range .Mounts}}{{println .Destination "->" .Propagation}}{{end}}'
 ```
 
 Debe mostrar `/host -> rshared`.
@@ -80,7 +80,7 @@ Puedes personalizarlas en `config.json` (o vía UI cuando esté completa) para a
 
 ## Primer arranque (first install)
 
-Si `/config/config.json` no existe, EDRmount crea un **config.json mínimo** (sin secretos) para que el contenedor pueda arrancar y luego termines la configuración desde la UI.
+Si `/config/config.json` no existe, AlfredEDR crea un **config.json mínimo** (sin secretos) para que el contenedor pueda arrancar y luego termines la configuración desde la UI.
 
 ## Notas importantes
 

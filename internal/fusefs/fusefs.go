@@ -12,8 +12,8 @@ import (
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 
-	"github.com/gaby/EDRmount/internal/config"
-	"github.com/gaby/EDRmount/internal/jobs"
+	"github.com/avogabo/AlfredEDR/internal/config"
+	"github.com/avogabo/AlfredEDR/internal/jobs"
 
 	"golang.org/x/sys/unix"
 )
@@ -49,8 +49,8 @@ func Start(ctx context.Context, opts MountOptions, filesystem fs.FS) (*Mount, er
 	}
 	mountOpts := []fuse.MountOption{
 		fuse.ReadOnly(),
-		fuse.FSName("edrmount"),
-		fuse.Subtype("edrmount"),
+		fuse.FSName("alfrededr"),
+		fuse.Subtype("alfrededr"),
 	}
 	if opts.AllowOther {
 		mountOpts = append(mountOpts, fuse.AllowOther())

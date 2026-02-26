@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/gaby/EDRmount/internal/config"
-	"github.com/gaby/EDRmount/internal/library"
+	"github.com/avogabo/AlfredEDR/internal/config"
+	"github.com/avogabo/AlfredEDR/internal/library"
 )
 
 var reFileBotTo = regexp.MustCompile(`(?i)\bto\s+\[(.+)\]`)

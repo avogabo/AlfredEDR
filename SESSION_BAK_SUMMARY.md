@@ -1,4 +1,4 @@
-# sessionsBAK — distilled summary (EDRmount)
+# sessionsBAK — distilled summary (AlfredEDR)
 
 This file captures high-signal context from the previous long development session logs (sessionsBAK) without importing the whole chat.
 
@@ -11,7 +11,7 @@ This file captures high-signal context from the previous long development sessio
 - Repo created and pushed to GitHub.
 - SSH key had to be added to GitHub (initial `Permission denied (publickey)` until key was registered).
 - A GitHub Actions workflow was added to build+push Docker image to GHCR.
-- Result: image published to GHCR so Unraid can install via `image: ghcr.io/<owner>/edrmount:latest`.
+- Result: image published to GHCR so Unraid can install via `image: ghcr.io/<owner>/alfrededr:latest`.
 
 ## Runtime paths / concepts that caused confusion
 - `/host/inbox/nzb` is an **input** directory for `.nzb` files.

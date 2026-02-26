@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gaby/EDRmount/internal/config"
+	"github.com/avogabo/AlfredEDR/internal/config"
 )
 
 type providerTestRequest struct {

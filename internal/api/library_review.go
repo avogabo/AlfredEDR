@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gaby/EDRmount/internal/library"
+	"github.com/avogabo/AlfredEDR/internal/library"
 )
 
 type reviewItem struct {

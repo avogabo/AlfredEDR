@@ -1,4 +1,4 @@
-# EDRmount — Spec (v0)
+# AlfredEDR — Spec (v0)
 
 ## Goals
 - Unraid-friendly Docker service that mounts Usenet-backed content as a normal filesystem.
@@ -61,7 +61,7 @@
 ## Streaming performance
 - Disk cache path is configurable in UI.
 - Recommended container mount: `/cache`.
-- Host example for your setup: `/mnt/vfs/EDRmount`.
+- Host example for your setup: `/mnt/vfs/AlfredEDR`.
 - Read-ahead default: 256MB (tunable).
 - Worker pools:
   - NNTP download workers (tunable)

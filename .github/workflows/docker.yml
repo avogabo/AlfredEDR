@@ -38,7 +38,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ghcr.io/${{ github.repository_owner }}/edrmount
+            ghcr.io/${{ github.repository_owner }}/alfrededr
           tags: |
             type=raw,value=latest
             type=sha

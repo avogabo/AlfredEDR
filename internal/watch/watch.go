@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gaby/EDRmount/internal/config"
-	"github.com/gaby/EDRmount/internal/jobs"
+	"github.com/avogabo/AlfredEDR/internal/config"
+	"github.com/avogabo/AlfredEDR/internal/jobs"
 )
 
 type Watcher struct {

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gaby/EDRmount/internal/backup"
+	"github.com/avogabo/AlfredEDR/internal/backup"
 )
 
 func (s *Server) registerBackupRoutes(dbPath string) {
@@ -176,7 +176,7 @@ func (s *Server) registerBackupRoutes(dbPath string) {
 		// Best-effort write check
 		writable := false
 		if err := os.MkdirAll(dir, 0o755); err == nil {
-			p := filepath.Join(dir, ".edrmount_write_test")
+			p := filepath.Join(dir, ".alfrededr_write_test")
 			if err := os.WriteFile(p, []byte("ok"), 0o644); err == nil {
 				_ = os.Remove(p)
 				writable = true
@@ -232,7 +232,7 @@ func backupConfigSnapshot(dbBackupPath string, sourceConfigPath string, backupDi
 	}
 	name := configBackupNameFromDBBackup(filepath.Base(dbBackupPath))
 	if name == "" {
-		name = "edrmount.config." + time.Now().Format("20060102-150405") + ".json"
+		name = "alfrededr.config." + time.Now().Format("20060102-150405") + ".json"
 	}
 	target := filepath.Join(backupDir, name)
 	if err := os.WriteFile(target, b, 0o644); err != nil {
@@ -243,15 +243,15 @@ func backupConfigSnapshot(dbBackupPath string, sourceConfigPath string, backupDi
 
 func configBackupNameFromDBBackup(dbName string) string {
 	name := dbName
-	if strings.HasPrefix(name, "edrmount.db.") {
-		name = strings.TrimPrefix(name, "edrmount.db.")
+	if strings.HasPrefix(name, "alfrededr.db.") {
+		name = strings.TrimPrefix(name, "alfrededr.db.")
 	}
 	name = strings.TrimSuffix(name, ".sqlite.gz")
 	name = strings.TrimSuffix(name, ".sqlite")
 	if name == "" {
 		return ""
 	}
-	return "edrmount.config." + name + ".json"
+	return "alfrededr.config." + name + ".json"
 }
 
 func restoreConfigFile(src string, dst string) error {

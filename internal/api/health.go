@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gaby/EDRmount/internal/jobs"
+	"github.com/avogabo/AlfredEDR/internal/jobs"
 )
 
 type healthScanEntry struct {

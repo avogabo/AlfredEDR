@@ -8,8 +8,8 @@ def die(msg):
     sys.exit(1)
 
 def main():
-    db_path = os.environ.get('EDRMOUNT_DB', '/home/pulgarcito/.openclaw/workspace/edrmount-data/config/edrmount.db')
-    out_dir = os.environ.get('EDRMOUNT_BACKUP_DIR', '/home/pulgarcito/.openclaw/workspace/edrmount-backups')
+    db_path = os.environ.get('EDRMOUNT_DB', '/home/pulgarcito/.openclaw/workspace/alfrededr-data/config/alfrededr.db')
+    out_dir = os.environ.get('EDRMOUNT_BACKUP_DIR', '/home/pulgarcito/.openclaw/workspace/alfrededr-backups')
     keep = int(os.environ.get('EDRMOUNT_BACKUP_KEEP', '30'))
 
     if not os.path.exists(db_path):
@@ -18,8 +18,8 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
 
     ts = datetime.now().strftime('%Y%m%d-%H%M%S')
-    tmp_out = os.path.join(out_dir, f"edrmount.db.{ts}.tmp")
-    final_out = os.path.join(out_dir, f"edrmount.db.{ts}.sqlite")
+    tmp_out = os.path.join(out_dir, f"alfrededr.db.{ts}.tmp")
+    final_out = os.path.join(out_dir, f"alfrededr.db.{ts}.sqlite")
     final_gz = final_out + '.gz'
 
     # Connect and checkpoint WAL to get a consistent snapshot.
@@ -50,7 +50,7 @@ def main():
 
     # Rotation: keep newest N backups
     files = sorted(
-        [f for f in os.listdir(out_dir) if f.startswith('edrmount.db.') and f.endswith('.sqlite.gz')],
+        [f for f in os.listdir(out_dir) if f.startswith('alfrededr.db.') and f.endswith('.sqlite.gz')],
         reverse=True,
     )
     for f in files[keep:]:

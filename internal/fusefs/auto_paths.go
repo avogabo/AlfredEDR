@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gaby/EDRmount/internal/config"
-	"github.com/gaby/EDRmount/internal/jobs"
+	"github.com/avogabo/AlfredEDR/internal/config"
+	"github.com/avogabo/AlfredEDR/internal/jobs"
 )
 
 // AutoVirtualPathsForImport returns the virtual library-auto paths (relative to the mount root)

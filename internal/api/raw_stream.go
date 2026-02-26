@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gaby/EDRmount/internal/streamer"
-	"github.com/gaby/EDRmount/internal/subject"
+	"github.com/avogabo/AlfredEDR/internal/streamer"
+	"github.com/avogabo/AlfredEDR/internal/subject"
 )
 
 func (s *Server) handleRawFileStream(w http.ResponseWriter, r *http.Request) {

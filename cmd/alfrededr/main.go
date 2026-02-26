@@ -7,13 +7,13 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/gaby/EDRmount/internal/api"
-	"github.com/gaby/EDRmount/internal/backup"
-	"github.com/gaby/EDRmount/internal/config"
-	"github.com/gaby/EDRmount/internal/fusefs"
-	"github.com/gaby/EDRmount/internal/health"
-	"github.com/gaby/EDRmount/internal/runner"
-	"github.com/gaby/EDRmount/internal/watch"
+	"github.com/avogabo/AlfredEDR/internal/api"
+	"github.com/avogabo/AlfredEDR/internal/backup"
+	"github.com/avogabo/AlfredEDR/internal/config"
+	"github.com/avogabo/AlfredEDR/internal/fusefs"
+	"github.com/avogabo/AlfredEDR/internal/health"
+	"github.com/avogabo/AlfredEDR/internal/runner"
+	"github.com/avogabo/AlfredEDR/internal/watch"
 )
 
 func main() {
@@ -36,7 +36,7 @@ func main() {
 		log.Fatalf("config validate: %v", err)
 	}
 
-	dbPath := "/config/edrmount.db"
+	dbPath := "/config/alfrededr.db"
 	// One-shot DB reset marker (created by API/UI): delete ONLY the DB files, keep config.json.
 	resetMarker := "/config/.reset-db"
 	if _, err := os.Stat(resetMarker); err == nil {
@@ -114,7 +114,7 @@ func main() {
 		}
 	}
 
-	log.Printf("EDRmount listening on %s", cfg.Server.Addr)
+	log.Printf("AlfredEDR listening on %s", cfg.Server.Addr)
 	if err := http.ListenAndServe(cfg.Server.Addr, srv.Handler()); err != nil {
 		log.Fatalf("server: %v", err)
 	}

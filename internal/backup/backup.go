@@ -43,7 +43,7 @@ func RunOnce(ctx context.Context, dbPath string, backupDir string, compress bool
 	}
 
 	ts := time.Now().Format("20060102-150405")
-	base := fmt.Sprintf("edrmount.db.%s.sqlite", ts)
+	base := fmt.Sprintf("alfrededr.db.%s.sqlite", ts)
 	out := filepath.Join(backupDir, base)
 	if compress {
 		out += ".gz"
@@ -159,7 +159,7 @@ func List(backupDir string) ([]Item, error) {
 			continue
 		}
 		name := e.Name()
-		if !strings.HasPrefix(name, "edrmount.db.") {
+		if !strings.HasPrefix(name, "alfrededr.db.") {
 			continue
 		}
 		if !(strings.HasSuffix(name, ".sqlite") || strings.HasSuffix(name, ".sqlite.gz")) {

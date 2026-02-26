@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gaby/EDRmount/internal/config"
-	"github.com/gaby/EDRmount/internal/jobs"
-	"github.com/gaby/EDRmount/internal/library"
-	"github.com/gaby/EDRmount/internal/meta/tmdb"
-	"github.com/gaby/EDRmount/internal/nzb"
-	"github.com/gaby/EDRmount/internal/subject"
+	"github.com/avogabo/AlfredEDR/internal/config"
+	"github.com/avogabo/AlfredEDR/internal/jobs"
+	"github.com/avogabo/AlfredEDR/internal/library"
+	"github.com/avogabo/AlfredEDR/internal/meta/tmdb"
+	"github.com/avogabo/AlfredEDR/internal/nzb"
+	"github.com/avogabo/AlfredEDR/internal/subject"
 	"github.com/google/uuid"
 )
 

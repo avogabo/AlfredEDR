@@ -292,7 +292,7 @@ async function refreshManual() {
         btn.style.outline = '';
         btn.style.outlineOffset = '';
 
-        const draggedId = (ev.dataTransfer && ev.dataTransfer.getData('text/edrmount-item-id')) || '';
+        const draggedId = (ev.dataTransfer && ev.dataTransfer.getData('text/alfrededr-item-id')) || '';
         const fallbackSelected = (document.getElementById('man_item_id').value || '').trim();
         const itemId = (draggedId || fallbackSelected).trim();
         if (!itemId) {
@@ -332,7 +332,7 @@ async function refreshManual() {
 
       tr.addEventListener('dragstart', (ev) => {
         if (!ev.dataTransfer) return;
-        ev.dataTransfer.setData('text/edrmount-item-id', it.id);
+        ev.dataTransfer.setData('text/alfrededr-item-id', it.id);
         ev.dataTransfer.effectAllowed = 'move';
         // also mark selection
         document.getElementById('man_item_id').value = it.id;

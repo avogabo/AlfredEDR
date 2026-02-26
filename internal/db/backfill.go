@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/gaby/EDRmount/internal/subject"
+	"github.com/avogabo/AlfredEDR/internal/subject"
 )
 
 func backfillFilenames(db *sql.DB) error {

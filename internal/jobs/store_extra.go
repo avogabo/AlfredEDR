@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/gaby/EDRmount/internal/db"
+	"github.com/avogabo/AlfredEDR/internal/db"
 )
 
 var ErrNoQueuedJobs = errors.New("no queued jobs")

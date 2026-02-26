@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gaby/EDRmount/internal/jobs"
+	"github.com/avogabo/AlfredEDR/internal/jobs"
 )
 
 func (s *Server) registerManualMediaUploadRoutes() {

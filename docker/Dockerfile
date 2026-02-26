@@ -8,7 +8,7 @@ COPY . .
 ARG VERSION=dev
 ARG COMMIT=unknown
 ARG BUILD_DATE=unknown
-RUN go build -ldflags "-X github.com/gaby/EDRmount/internal/version.Version=${VERSION} -X github.com/gaby/EDRmount/internal/version.Commit=${COMMIT} -X github.com/gaby/EDRmount/internal/version.Date=${BUILD_DATE}" -o /out/edrmount ./cmd/edrmount
+RUN go build -ldflags "-X github.com/avogabo/AlfredEDR/internal/version.Version=${VERSION} -X github.com/avogabo/AlfredEDR/internal/version.Commit=${COMMIT} -X github.com/avogabo/AlfredEDR/internal/version.Date=${BUILD_DATE}" -o /out/alfrededr ./cmd/alfrededr
 
 # Health tool (included in image)
 # Pin version for reproducible builds (avoid cache bust / upstream breakage)
@@ -45,7 +45,7 @@ RUN locale-gen en_US.UTF-8 || true
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 
-COPY --from=build /out/edrmount /usr/local/bin/edrmount
+COPY --from=build /out/alfrededr /usr/local/bin/alfrededr
 COPY --from=build /go/bin/nzb-repair /usr/local/bin/nzb-repair
 # Install turbo par2 tools (par2create/par2/...) overriding base package when present
 COPY --from=par2build /out/usr/local/bin/ /usr/local/bin/
@@ -106,4 +106,4 @@ EXPOSE 1516
 # - --cap-add SYS_ADMIN
 # - potentially apparmor:unconfined on Unraid
 
-ENTRYPOINT ["/usr/local/bin/edrmount","-fuse","-config","/config/config.json"]
+ENTRYPOINT ["/usr/local/bin/alfrededr","-fuse","-config","/config/config.json"]

@@ -1,4 +1,4 @@
-module github.com/gaby/EDRmount
+module github.com/avogabo/AlfredEDR
 
 go 1.24.0
 

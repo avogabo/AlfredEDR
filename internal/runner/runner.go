@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gaby/EDRmount/internal/config"
-	"github.com/gaby/EDRmount/internal/fusefs"
-	"github.com/gaby/EDRmount/internal/importer"
-	"github.com/gaby/EDRmount/internal/jobs"
-	"github.com/gaby/EDRmount/internal/library"
-	"github.com/gaby/EDRmount/internal/plex"
+	"github.com/avogabo/AlfredEDR/internal/config"
+	"github.com/avogabo/AlfredEDR/internal/fusefs"
+	"github.com/avogabo/AlfredEDR/internal/importer"
+	"github.com/avogabo/AlfredEDR/internal/jobs"
+	"github.com/avogabo/AlfredEDR/internal/library"
+	"github.com/avogabo/AlfredEDR/internal/plex"
 )
 
 var rePercent = regexp.MustCompile(`\b(\d{1,3})%\b`)

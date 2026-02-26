@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gaby/EDRmount/internal/config"
-	"github.com/gaby/EDRmount/internal/meta/tmdb"
+	"github.com/avogabo/AlfredEDR/internal/config"
+	"github.com/avogabo/AlfredEDR/internal/meta/tmdb"
 )
 
 type Resolver struct {

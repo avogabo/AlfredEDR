@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gaby/EDRmount/internal/subject"
+	"github.com/avogabo/AlfredEDR/internal/subject"
 )
 
 type rawItem struct {

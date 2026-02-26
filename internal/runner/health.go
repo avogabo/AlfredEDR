@@ -14,11 +14,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gaby/EDRmount/internal/config"
-	"github.com/gaby/EDRmount/internal/importer"
-	"github.com/gaby/EDRmount/internal/nntp"
-	"github.com/gaby/EDRmount/internal/nzb"
-	"github.com/gaby/EDRmount/internal/yenc"
+	"github.com/avogabo/AlfredEDR/internal/config"
+	"github.com/avogabo/AlfredEDR/internal/importer"
+	"github.com/avogabo/AlfredEDR/internal/nntp"
+	"github.com/avogabo/AlfredEDR/internal/nzb"
+	"github.com/avogabo/AlfredEDR/internal/yenc"
 )
 
 type healthRepairPayload struct {

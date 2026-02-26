@@ -1,20 +1,20 @@
 services:
-  edrmount:
+  alfrededr:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    container_name: EDRmount
+    container_name: AlfredEDR
     environment:
       - PORT=8080
     ports:
       - "1516:1516"
     volumes:
       # Appdata/config
-      - /mnt/user/appdata/EDRmount:/config
+      - /mnt/user/appdata/AlfredEDR:/config
       # Host data root (library/inbox/mount)
       - /mnt/user/Nubes/USENET:/host:rshared
       # Cache (fast path)
-      - /mnt/vfs/EDRmount:/cache
+      - /mnt/vfs/AlfredEDR:/cache
     devices:
       - /dev/fuse:/dev/fuse
     cap_add:

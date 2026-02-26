@@ -12,10 +12,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gaby/EDRmount/internal/config"
-	"github.com/gaby/EDRmount/internal/db"
-	"github.com/gaby/EDRmount/internal/jobs"
-	"github.com/gaby/EDRmount/internal/version"
+	"github.com/avogabo/AlfredEDR/internal/config"
+	"github.com/avogabo/AlfredEDR/internal/db"
+	"github.com/avogabo/AlfredEDR/internal/jobs"
+	"github.com/avogabo/AlfredEDR/internal/version"
 )
 
 //go:embed webui/*

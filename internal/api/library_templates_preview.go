@@ -4,7 +4,7 @@ import (
   "encoding/json"
   "net/http"
 
-  "github.com/gaby/EDRmount/internal/library"
+  "github.com/avogabo/AlfredEDR/internal/library"
 )
 
 type templatesPreviewResp struct {

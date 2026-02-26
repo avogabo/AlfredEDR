@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gaby/EDRmount/internal/db"
+	"github.com/avogabo/AlfredEDR/internal/db"
 )
 
 type Type string

@@ -1318,7 +1318,7 @@ window.addEventListener('DOMContentLoaded', () => {
       const st = document.getElementById('setBackupsStatus');
       const name = sel ? String(sel.value || '').trim() : '';
       if (!name) return;
-      const ok = confirm(`¿Restaurar backup ${name}?\n\nModo: ${label}. EDRmount se reiniciará.`);
+      const ok = confirm(`¿Restaurar backup ${name}?\n\nModo: ${label}. AlfredEDR se reiniciará.`);
       if (!ok) return;
       try {
         if (st) st.textContent = `Restaurando (${label})…`;

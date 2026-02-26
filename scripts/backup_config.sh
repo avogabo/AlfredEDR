@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-CFG_DIR=${EDRMOUNT_CFG_DIR:-/home/pulgarcito/.openclaw/workspace/edrmount-data/config}
-OUT_DIR=${EDRMOUNT_BACKUP_DIR:-/home/pulgarcito/.openclaw/workspace/edrmount-backups}
+CFG_DIR=${EDRMOUNT_CFG_DIR:-/home/pulgarcito/.openclaw/workspace/alfrededr-data/config}
+OUT_DIR=${EDRMOUNT_BACKUP_DIR:-/home/pulgarcito/.openclaw/workspace/alfrededr-backups}
 KEEP=${EDRMOUNT_CFG_KEEP:-30}
 
 mkdir -p "$OUT_DIR"

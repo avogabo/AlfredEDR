@@ -9,7 +9,7 @@ import (
 
 // EnsureConfigFile makes sure the config file exists.
 //
-// If the file does not exist, it writes a safe default config that allows EDRmount
+// If the file does not exist, it writes a safe default config that allows AlfredEDR
 // to boot so the user can finish configuration via the Web UI.
 //
 // It never overwrites an existing file.

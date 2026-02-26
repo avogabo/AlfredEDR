@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gaby/EDRmount/internal/cache"
-	"github.com/gaby/EDRmount/internal/yenc"
+	"github.com/avogabo/AlfredEDR/internal/cache"
+	"github.com/avogabo/AlfredEDR/internal/yenc"
 )
 
 type SegmentLocator struct {

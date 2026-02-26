@@ -12,7 +12,7 @@ import "strings"
 // - "Post Production" (rare for TV)
 // - "Rumored" (rare for TV)
 //
-// EDRmount's library layout (per SPEC/README) uses Spanish buckets:
+// AlfredEDR's library layout (per SPEC/README) uses Spanish buckets:
 // - "Emision" (airing / ongoing / not finished)
 // - "Finalizadas" (ended/canceled)
 
@@ -24,7 +24,7 @@ const (
 	SeriesBucketFinalizada SeriesBucket = "Finalizadas"
 )
 
-// MapTVStatusToBucket maps TMDB tv.status to EDRmount's folder bucket.
+// MapTVStatusToBucket maps TMDB tv.status to AlfredEDR's folder bucket.
 func MapTVStatusToBucket(status string) SeriesBucket {
 	s := strings.TrimSpace(strings.ToLower(status))
 	s = strings.ReplaceAll(s, "_", " ")

@@ -48,7 +48,7 @@ func parseRanges(h string, size int64) (*multiRange, error) {
 func randBoundary() string {
 	b := make([]byte, 12)
 	_, _ = rand.Read(b)
-	return fmt.Sprintf("edrmount-%x", b)
+	return fmt.Sprintf("alfrededr-%x", b)
 }
 
 func serveMultiRangeFromFile(w http.ResponseWriter, r *http.Request, f *os.File, size int64, ct string, mr *multiRange) error {

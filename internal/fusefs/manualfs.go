@@ -18,9 +18,9 @@ import (
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 
-	"github.com/gaby/EDRmount/internal/config"
-	"github.com/gaby/EDRmount/internal/jobs"
-	"github.com/gaby/EDRmount/internal/streamer"
+	"github.com/avogabo/AlfredEDR/internal/config"
+	"github.com/avogabo/AlfredEDR/internal/jobs"
+	"github.com/avogabo/AlfredEDR/internal/streamer"
 )
 
 // ManualFS exposes a read-only filesystem that is editable via UI (DB-backed).

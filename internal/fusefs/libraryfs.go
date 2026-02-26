@@ -18,10 +18,10 @@ import (
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 
-	"github.com/gaby/EDRmount/internal/config"
-	"github.com/gaby/EDRmount/internal/jobs"
-	"github.com/gaby/EDRmount/internal/library"
-	"github.com/gaby/EDRmount/internal/streamer"
+	"github.com/avogabo/AlfredEDR/internal/config"
+	"github.com/avogabo/AlfredEDR/internal/jobs"
+	"github.com/avogabo/AlfredEDR/internal/library"
+	"github.com/avogabo/AlfredEDR/internal/streamer"
 )
 
 // LibraryFS exposes a read-only organized view under /library.

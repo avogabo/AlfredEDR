@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gaby/EDRmount/internal/config"
-	"github.com/gaby/EDRmount/internal/fusefs"
+	"github.com/avogabo/AlfredEDR/internal/config"
+	"github.com/avogabo/AlfredEDR/internal/fusefs"
 )
 
 type autoEntry struct {
