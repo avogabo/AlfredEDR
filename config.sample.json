@@ -1,0 +1,123 @@
+{
+  "server": {
+    "addr": ":1516"
+  },
+  "paths": {
+    "host_root": "/host",
+    "mount_point": "/host/mount",
+    "nzb_inbox": "/host/inbox/nzb",
+    "media_inbox": "/host/inbox/media",
+    "cache_dir": "/cache",
+    "cache_max_bytes": 53687091200
+  },
+  "watch": {
+    "media": {
+      "enabled": false,
+      "dir": "/host/inbox/media",
+      "recursive": true
+    },
+    "nzb": {
+      "enabled": true,
+      "dir": "/host/inbox/nzb",
+      "recursive": true
+    }
+  },
+  "runner": {
+    "enabled": true,
+    "mode": "exec"
+  },
+  "library": {
+    "enabled": true,
+    "movies_root": "PELICULAS",
+    "series_root": "SERIES",
+    "emision_folder": "EMISION",
+    "finalizadas_folder": "FINALIZADAS",
+    "uppercase_folders": true,
+    "movie_dir_template": "{movies_root}/{quality}/{initial}/{title} ({year}) tmdb-{tmdb_id}",
+    "movie_file_template": "{title} ({year}) tmdb-{tmdb_id}{ext}",
+    "series_dir_template": "{series_root}/{series_status}/{initial}/{series} ({year}) tmdb-{tmdb_id}",
+    "season_folder_template": "TEMPORADA {season:00}",
+    "series_file_template": "{series} ({year}) - {season:00}x{episode:00} - {episode_title}{ext}"
+  },
+  "metadata": {
+    "tmdb": {
+      "enabled": true,
+      "api_key": "",
+      "language": "es-ES"
+    }
+  },
+  "plex": {
+    "enabled": false,
+    "refresh_on_import": true,
+    "base_url": "http://192.168.1.10:32400",
+    "token": "",
+    "plex_root": "/mnt/media/library-auto"
+  },
+  "upload": {
+    "provider": "ngpost",
+    "par": {
+      "enabled": true,
+      "redundancy_percent": 20,
+      "keep_parity_files": true,
+      "dir": "/host/inbox/par2"
+    }
+  },
+  "ngpost": {
+    "enabled": false,
+    "host": "ssl-news.provider.com",
+    "port": 563,
+    "ssl": true,
+    "user": "",
+    "pass": "",
+    "connections": 20,
+    "threads": 2,
+    "groups": "alt.binaries.test",
+    "output_dir": "/host/inbox/nzb",
+    "tmp_dir": "",
+    "obfuscate": true
+  },
+  "download": {
+    "enabled": false,
+    "host": "news.newshosting.com",
+    "port": 563,
+    "ssl": true,
+    "user": "",
+    "pass": "",
+    "connections": 20,
+    "prefetch_segments": 50
+  },
+  "backups": {
+    "enabled": false,
+    "dir": "/backups",
+    "every_mins": 0,
+    "keep": 30,
+    "compress_gz": true
+  },
+  "health": {
+    "enabled": true,
+    "backup_dir": "/cache/health-bak",
+    "scan": {
+      "enabled": false,
+      "interval_hours": 24,
+      "chunk_every_hours": 24,
+      "max_duration_minutes": 180,
+      "auto_repair": true
+    },
+    "lock": {
+      "lock_ttl_hours": 6
+    }
+  },
+  "rename": {
+    "provider": "filebot",
+    "filebot": {
+      "enabled": true,
+      "binary": "/usr/local/bin/filebot",
+      "db": "TheMovieDB",
+      "language": "es",
+      "movie_format": "{n} ({y})",
+      "series_format": "{n} - {s00e00} - {t}",
+      "action": "test",
+      "license_path": "/config/filebot/license.psm"
+    }
+  }
+}
