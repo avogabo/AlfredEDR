@@ -101,14 +101,9 @@ func main() {
 		if enableFuse {
 			if cfg.Library.Enabled {
 				if _, err := fusefs.MountLibraryAuto(ctx, cfg, srvJobs); err != nil {
-					log.Printf("FUSE library-auto mount failed: %v", err)
+					log.Printf("FUSE library mount failed: %v", err)
 				} else {
-					log.Printf("FUSE library-auto mounted at %s/library-auto", cfg.Paths.MountPoint)
-				}
-				if _, err := fusefs.MountLibraryManual(ctx, cfg, srvJobs); err != nil {
-					log.Printf("FUSE library-manual mount failed: %v", err)
-				} else {
-					log.Printf("FUSE library-manual mounted at %s/library-manual", cfg.Paths.MountPoint)
+					log.Printf("FUSE library mounted at %s/library", cfg.Paths.MountPoint)
 				}
 			}
 		}

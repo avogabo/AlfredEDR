@@ -283,8 +283,7 @@ function showPage(name) {
 // Library explorer (FUSE)
 // NOTE: the actual mount root inside the container is typically /host/mount/*.
 // We discover it from the backend to avoid hardcoding /mount/* which breaks on Unraid.
-let AUTO_ROOT = '/mount/library-auto';
-let MAN_ROOT = '/mount/library-manual'; // legacy label; UI now uses DB-backed manual tree
+let AUTO_ROOT = '/mount/library';
 let autoPath = AUTO_ROOT;
 let manPath = MAN_ROOT;
 let manualDirId = 'root';
@@ -308,10 +307,7 @@ async function initLibraryRoots() {
   if (!autoPath || autoPath === '/mount/library-auto' || autoPath.startsWith('/mount/library-auto/')) {
     autoPath = AUTO_ROOT;
   }
-  if (!manPath || manPath === '/mount/library-manual' || manPath.startsWith('/mount/library-manual/')) {
-    manPath = MAN_ROOT;
   }
-}
 
 function renderCrumbs(boxId, path, root, onPick) {
   const box = document.getElementById(boxId);
@@ -449,14 +445,7 @@ function goUp(kind) {
 }
 
 function setLibraryTab(which) {
-  const autoPane = document.getElementById('autoPane');
-  const manualPane = document.getElementById('manualPane');
-  document.getElementById('tabAuto').classList.toggle('active', which === 'auto');
-  document.getElementById('tabManual').classList.toggle('active', which === 'manual');
-  autoPane.classList.toggle('hide', which !== 'auto');
-  manualPane.classList.toggle('hide', which !== 'manual');
-  if (which === 'auto') refreshList('auto').catch(err => setStatus('autoStatus', String(err)));
-  if (which === 'manual') refreshManual().catch(err => setStatus('manStatus', String(err)));
+  if (which === "auto") refreshList("auto").catch(err => setStatus("autoStatus", String(err)));
 }
 
 async function restartNow() {
@@ -978,7 +967,7 @@ async function refreshImports() {
     const btnDel = el('button', { class: 'btn danger', text: 'Borrar global' });
     btnDel.onclick = async (ev) => {
       ev.stopPropagation();
-      const ok = confirm('¿Eliminar este import de la biblioteca (global)?\n\n- Desaparece de library-auto y library-manual\n- NO borra el NZB ni PAR2 del disco\n\n¿Continuar?');
+      const ok = confirm('¿Eliminar este import de la biblioteca (global)?\n\n- Desaparece de library\n- NO borra el NZB ni PAR2 del disco\n\n¿Continuar?');
       if (!ok) return;
       await apiPostJson('/api/v1/catalog/imports/delete', { id: it.id });
       await refreshImports();
@@ -1207,9 +1196,7 @@ window.addEventListener('DOMContentLoaded', () => {
     showPage('library');
 
   // Tabs
-  document.getElementById('tabAuto').onclick = () => setLibraryTab('auto');
-  document.getElementById('tabManual').onclick = () => setLibraryTab('manual');
-  setLibraryTab('auto');
+  refreshList('auto').catch(err => setStatus('autoStatus', String(err)));
 
   // Download tuning hint
   const dlConn = document.getElementById('setDL_CONN');
@@ -1233,8 +1220,6 @@ window.addEventListener('DOMContentLoaded', () => {
   // Controls
   document.getElementById('btnAutoRefresh').onclick = () => refreshList('auto').catch(err => setStatus('autoStatus', String(err)));
   document.getElementById('btnAutoUp').onclick = () => goUp('auto');
-  document.getElementById('btnManRefresh').onclick = () => refreshManual().catch(err => setStatus('manStatus', String(err)));
-  document.getElementById('btnManUp').onclick = () => goUp('manual');
 
   // Import page
   if (document.getElementById('btnImpRefresh')) {

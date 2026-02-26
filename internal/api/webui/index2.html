@@ -191,15 +191,9 @@
           <div class="split">
             <div>
               <h2 class="sectionTitle">Biblioteca (Library)</h2>
-              <div class="muted">Vista de <b>library-auto</b> (FUSE). Toggle para manual.</div>
+              <div class="muted">Vista de <b>library</b> (FUSE).</div>
             </div>
-            <div class="row">
-              <div class="toggle" role="tablist" aria-label="Auto/Manual">
-                <button id="tabAuto" class="active" type="button">Auto</button>
-                <button id="tabManual" type="button">Manual</button>
-              </div>
-            </div>
-          </div>
+</div>
 
           <div id="autoPane">
                                     <div class="row" style="margin-top:10px">
@@ -225,7 +219,7 @@
               <div class="row" style="justify-content:space-between">
                 <div>
                   <b>⚠ Pendiente de revisión (Needs review)</b>
-                  <div class="muted" style="margin-top:4px">Películas donde el auto-match falló. Corrige aquí y se reflejará en <b>library-auto</b> (para Plex).</div>
+                  <div class="muted" style="margin-top:4px">Películas donde el auto-match falló. Corrige aquí y se reflejará en <b>library</b> (para Plex).</div>
                 </div>
                 <button class="btn" id="btnReviewRefresh">Actualizar (Refresh)</button>
               </div>
@@ -272,35 +266,6 @@
               </div>
             </div>
 
-          </div>
-
-          <div id="manualPane" class="hide">
-            <div class="split">
-              <div>
-                <div class="muted" style="margin:10px 0">Vista <b>Manual</b> (editable, DB-backed). (Manual view)</div>
-              </div>
-              <div class="row">
-                <button class="btn" id="btnManUp">Arriba (Up)</button>
-                <button class="btn" id="btnManRefresh">Actualizar (Refresh)</button>
-                <span class="muted" id="manStatus"></span>
-              </div>
-            </div>
-
-            <div class="row" style="margin-top:10px">
-              <div class="crumbs" id="manCrumbs" style="flex:1"></div>
-            </div>
-
-            <div class="grid">
-              <div class="list">
-                <div class="listHeader" style="grid-template-columns: 1fr 110px 190px 70px;">
-                  <div>Nombre (Name)</div>
-                  <div class="mono">Size</div>
-                  <div class="mono">ModTime</div>
-                  <div>Acción</div>
-                </div>
-                <div id="manList"></div>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -493,10 +458,10 @@
 
             <div class="list" style="padding:12px">
               <b>Library auto</b>
-              <div class="muted" style="margin-top:6px">Estructura de rutas virtuales que ve Plex (apunta Plex a <span class="mono">library-auto</span>).</div>
+              <div class="muted" style="margin-top:6px">Estructura de rutas virtuales que ve Plex (apunta Plex a <span class="mono">library</span>).</div>
 
               <div class="row" style="margin-top:12px">
-                <div class="muted"><b>library-auto</b> está siempre activo (no se puede desactivar).</div>
+                <div class="muted"><b>library</b> está siempre activo (no se puede desactivar).</div>
                 <label class="muted" style="margin-left:14px"><input type="checkbox" id="setLibUpper" /> Carpetas en MAYÚSCULAS</label>
               </div>
 
@@ -611,7 +576,7 @@
 
             <div class="list" style="padding:12px">
               <b>Plex</b>
-              <div class="muted" style="margin-top:6px">Refresco selectivo tras importar en library-auto.</div>
+              <div class="muted" style="margin-top:6px">Refresco selectivo tras importar en library.</div>
               <div class="row" style="margin-top:12px">
                 <label class="muted"><input type="checkbox" id="setPlexAutoRefresh" /> Refrescar Plex automáticamente al importar</label>
               </div>
@@ -627,7 +592,7 @@
               </div>
               <div class="row" style="margin-top:8px">
                 <label class="muted">Plex root
-                  <input id="setPlexRoot" style="min-width:340px; margin-left:8px" placeholder="/mnt/media/library-auto" />
+                  <input id="setPlexRoot" style="min-width:340px; margin-left:8px" placeholder="/mnt/media/library" />
                 </label>
               </div>
             </div>

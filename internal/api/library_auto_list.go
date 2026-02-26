@@ -23,7 +23,7 @@ type autoEntry struct {
 }
 
 func (s *Server) registerLibraryAutoListRoutes() {
-	// GET /api/v1/library/auto/list?path=/mount/library-auto/PELICULAS/...
+	// GET /api/v1/library/auto/list?path=/mount/library/PELICULAS/...
 	// Returns a virtual listing with (import_id,file_idx) for files so UI can delete globally/fully.
 	s.mux.HandleFunc("/api/v1/library/auto/list", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -42,7 +42,7 @@ func (s *Server) registerLibraryAutoListRoutes() {
 		if mp == "" {
 			mp = "/host/mount"
 		}
-		autoRoot := filepath.Join(filepath.Clean(mp), "library-auto")
+		autoRoot := filepath.Join(filepath.Clean(mp), "library")
 
 		p := strings.TrimSpace(r.URL.Query().Get("path"))
 		if p == "" {
@@ -53,7 +53,7 @@ func (s *Server) registerLibraryAutoListRoutes() {
 			// ok
 		} else if !strings.HasPrefix(p, autoRoot+string(filepath.Separator)) {
 			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "path outside library-auto"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "path outside library"})
 			return
 		}
 
@@ -170,7 +170,7 @@ func (s *Server) registerLibraryAutoListRoutes() {
 		if mp == "" {
 			mp = "/host/mount"
 		}
-		autoRoot := filepath.Join(filepath.Clean(mp), "library-auto")
+		autoRoot := filepath.Join(filepath.Clean(mp), "library")
 		_ = json.NewEncoder(w).Encode(map[string]string{"root": autoRoot})
 	})
 }
