@@ -267,7 +267,6 @@ function showPage(name) {
     loadUploadSettings().catch(() => {});
   }
 
-  if (name === 'health') {
   }
 
   if (name === 'logs') {
