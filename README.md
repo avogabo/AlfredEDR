@@ -1,6 +1,6 @@
 # AlfredEDR
 
-AlfredEDR convierte **NZBs → una biblioteca FUSE** con MKVs “virtuales” que se **descargan on‑demand**, e incluye una **UI web** para **Importar / Subir / Health (reparar)**.
+AlfredEDR convierte **NZBs → una biblioteca FUSE** con MKVs “virtuales” que se **descargan on‑demand**, e incluye una **UI web** para **Importar / Subir **.
 Pensado para que **Plex apunte a `library-auto`**.
 
 ## Quickstart (Docker Compose - recomendado)
@@ -45,16 +45,11 @@ Debe mostrar `/host -> rshared`.
 - `/cache`: staging + cache + backups locales de Health
 - `/backups`: backups
 
-Mounts (FUSE):
-- `/host/mount/library-auto` (Plex)
-- `/host/mount/library-manual`
-
 ## Funciones (UI)
 
-- **Biblioteca**: navegar `library-auto` / `library-manual`
-- **Subida**: upload (ngPost) → NZB (+ PAR2 local opcional)
+- **Biblioteca**: navegar por la libreria
+- **Subida**: upload (nyuu obfuscation) → NZB (+ PAR2 local opcional)
 - **Importar**: importar NZBs → aparecen MKVs virtuales
-- **Health**: escaneo + reparación automática con **PAR2 local** (el NZB reparado queda limpio, sin adjuntar nuevos `.par2`)
 - **Ajustes**: config + restart
 - **Logs**: logs de jobs
 
@@ -69,9 +64,9 @@ En **Ajustes (Settings)** tienes dos carpetas vigiladas:
 
 > Idea: *media* = “lo que vas a procesar/subir”; *nzb* = “la cola/entrada de NZBs”.
 
-## Library-auto (reglas tipo Filebot)
+## Library (reglas tipo Filebot)
 
-La vista `library-auto` se construye con plantillas configurables (estilo Filebot). Falta por completar la UI para editar todas las reglas, pero el backend ya soporta:
+La vista `library` se construye con plantillas configurables (estilo Filebot). Falta por completar la UI para editar todas las reglas, pero el backend ya soporta:
 
 - `library.movie_dir_template`, `library.movie_file_template`
 - `library.series_dir_template`, `library.season_folder_template`, `library.series_file_template`
@@ -81,9 +76,3 @@ Puedes personalizarlas en `config.json` (o vía UI cuando esté completa) para a
 ## Primer arranque (first install)
 
 Si `/config/config.json` no existe, AlfredEDR crea un **config.json mínimo** (sin secretos) para que el contenedor pueda arrancar y luego termines la configuración desde la UI.
-
-## Notas importantes
-
-- PAR2 se **guarda local** (no se sube al release).
-- Health usa `.health.lock` para evitar doble reparación en RAW compartido.
-- No publiques `config.json` con credenciales.
