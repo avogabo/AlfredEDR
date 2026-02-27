@@ -145,24 +145,12 @@ func (s *Streamer) StreamRange(ctx context.Context, importID string, fileIdx int
 	// then stream using real decoded segment sizes from cache/files.
 	writtenAny := false
 
-	startIdx := sort.Search(len(layout.Segs), func(i int) bool {
-		return layout.Offsets[i]+layout.Segs[i].Bytes > start
-	})
-	if startIdx < 0 {
-		startIdx = 0
-	}
-	// Small backtrack window to absorb encoded-vs-decoded drift.
-	if startIdx > 2 {
-		startIdx -= 2
-	} else {
-		startIdx = 0
-	}
+	// IMPORTANT for Nyuu compatibility:
+	// segment "bytes" in NZB can drift from decoded payload sizes enough to corrupt
+	// offset-based seeking. To keep byte-exact streaming, walk from segment 0 and
+	// compute offsets only from actual decoded cache file sizes.
 	off := int64(0)
-	if startIdx < len(layout.Offsets) {
-		off = layout.Offsets[startIdx]
-	}
-
-	for i := startIdx; i < len(layout.Segs); i++ {
+	for i := 0; i < len(layout.Segs); i++ {
 		seg := layout.Segs[i]
 
 		// Prefetch best-effort: do not block on errors/results.

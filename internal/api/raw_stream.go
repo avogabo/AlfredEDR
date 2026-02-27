@@ -261,67 +261,6 @@ func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Nyuu compatibility mode:
-	// Some Nyuu NZBs can report per-segment byte sizes that drift from decoded payload sizes.
-	// For playback reliability, force full local file materialization and serve ranges from disk.
-	if strings.EqualFold(cfg.Upload.Provider, "nyuu") {
-		localPath, err := st.EnsureFile(ctx, importID, fileIdx, filename)
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-			return
-		}
-		f, err := os.Open(localPath)
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-			return
-		}
-		defer f.Close()
-		if stf, err := f.Stat(); err == nil && stf.Size() > 0 {
-			size = stf.Size()
-		}
-		mr2, perr2 := parseRanges(r.Header.Get("Range"), size)
-		if perr2 != nil {
-			w.Header().Set("Content-Range", fmt.Sprintf("bytes */%d", size))
-			w.WriteHeader(http.StatusRequestedRangeNotSatisfiable)
-			return
-		}
-		if mr2 == nil {
-			w.Header().Set("Content-Length", fmt.Sprintf("%d", size))
-			if r.Method == http.MethodHead {
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-			w.WriteHeader(http.StatusOK)
-			_, _ = io.Copy(w, f)
-			return
-		}
-		if len(mr2.Ranges) == 1 {
-			br := mr2.Ranges[0]
-			length := (br.End - br.Start) + 1
-			w.Header().Set("Content-Length", fmt.Sprintf("%d", length))
-			w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", br.Start, br.End, size))
-			if r.Method == http.MethodHead {
-				w.WriteHeader(http.StatusPartialContent)
-				return
-			}
-			w.WriteHeader(http.StatusPartialContent)
-			if _, err := f.Seek(br.Start, 0); err == nil {
-				_, _ = io.CopyN(w, f, length)
-			}
-			return
-		}
-		if r.Method == http.MethodHead {
-			w.WriteHeader(http.StatusPartialContent)
-			return
-		}
-		_ = serveMultiRangeFromFile(w, r, f, size, "application/octet-stream", mr2)
-		return
-	}
-
 	if mr == nil {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", size))
 		if r.Method == http.MethodHead {
