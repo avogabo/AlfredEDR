@@ -48,6 +48,7 @@ func (s *Server) handleRawFileStream(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 	fileIdx := -1
 	var size int64
+	matchSubject := ""
 	seen := map[string]int{}
 	for rows.Next() {
 		var idx int
@@ -75,6 +76,7 @@ func (s *Server) handleRawFileStream(w http.ResponseWriter, r *http.Request) {
 		if disp == filename {
 			fileIdx = idx
 			size = bytes
+			matchSubject = subj
 			break
 		}
 	}
@@ -144,7 +146,7 @@ func (s *Server) handleRawFileStream(w http.ResponseWriter, r *http.Request) {
 		if probeEnd > br.End {
 			probeEnd = br.End
 		}
-		if err := st.StreamRange(ctx, importID, fileIdx, filename, br.Start, probeEnd, io.Discard, 4); err != nil {
+		if err := st.StreamRange(ctx, importID, fileIdx, filename, br.Start, probeEnd, io.Discard, prefetchForSubject(matchSubject, 4)); err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadGateway)
 			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
@@ -154,7 +156,7 @@ func (s *Server) handleRawFileStream(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", length))
 		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", br.Start, br.End, size))
 		w.WriteHeader(http.StatusPartialContent)
-		if err := st.StreamRange(ctx, importID, fileIdx, filename, br.Start, br.End, w, 8); err != nil {
+		if err := st.StreamRange(ctx, importID, fileIdx, filename, br.Start, br.End, w, prefetchForSubject(matchSubject, 8)); err != nil {
 			log.Printf("raw stream range failed import=%s fileIdx=%d err=%v", importID, fileIdx, err)
 		}
 		return
@@ -302,7 +304,7 @@ func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
 		if probeEnd > br.End {
 			probeEnd = br.End
 		}
-		if err := st.StreamRange(ctx, importID, fileIdx, filename, br.Start, probeEnd, io.Discard, 4); err != nil {
+		if err := st.StreamRange(ctx, importID, fileIdx, filename, br.Start, probeEnd, io.Discard, prefetchForSubject(subj, 4)); err != nil {
 			log.Printf("PLAY stream preflight failed import=%s fileIdx=%d err=%v", importID, fileIdx, err)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadGateway)
@@ -312,7 +314,7 @@ func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", length))
 		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", br.Start, br.End, size))
 		w.WriteHeader(http.StatusPartialContent)
-		if err := st.StreamRange(ctx, importID, fileIdx, filename, br.Start, br.End, w, 8); err != nil {
+		if err := st.StreamRange(ctx, importID, fileIdx, filename, br.Start, br.End, w, prefetchForSubject(subj, 8)); err != nil {
 			log.Printf("PLAY stream range failed import=%s fileIdx=%d err=%v", importID, fileIdx, err)
 		}
 		return
@@ -350,4 +352,17 @@ func withSuffixBeforeExt(name string, n int) string {
 		return fmt.Sprintf("%s__%d", base, n)
 	}
 	return fmt.Sprintf("%s__%d%s", base, n, ext)
+}
+
+
+func prefetchForSubject(subj string, base int) int {
+	if base < 1 {
+		base = 1
+	}
+	ls := strings.ToLower(strings.TrimSpace(subj))
+	// Nyuu-Obfuscation default here uses quoted filename + yEnc in NZB subject.
+	if strings.Contains(ls, "yenc") && strings.Contains(subj, "\"") {
+		return -base // negative => accurate mode in streamer (scan offsets from seg 0)
+	}
+	return base
 }

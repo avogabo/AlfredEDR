@@ -145,6 +145,11 @@ func (s *Streamer) StreamRange(ctx context.Context, importID string, fileIdx int
 	// then stream using real decoded segment sizes from cache/files.
 	writtenAny := false
 
+	accurateMode := prefetch < 0
+	if accurateMode {
+		prefetch = -prefetch
+	}
+
 	startIdx := sort.Search(len(layout.Segs), func(i int) bool {
 		return layout.Offsets[i]+layout.Segs[i].Bytes > start
 	})
@@ -158,7 +163,9 @@ func (s *Streamer) StreamRange(ctx context.Context, importID string, fileIdx int
 		startIdx = 0
 	}
 	off := int64(0)
-	if startIdx < len(layout.Offsets) {
+	if accurateMode {
+		startIdx = 0
+	} else if startIdx < len(layout.Offsets) {
 		off = layout.Offsets[startIdx]
 	}
 
