@@ -19,6 +19,10 @@ mount_webdav_if_enabled() {
     echo "[entrypoint] webdav_mount.enabled=true but url empty; skipping mount"
     return 0
   fi
+  if [[ "$mpath" != /host/* ]]; then
+    echo "[entrypoint] mount_path must be under /host for host visibility (got: $mpath)"
+    exit 1
+  fi
 
   mkdir -p "$mpath"
   pkill -f "rclone mount alfredwebdav:" >/dev/null 2>&1 || true
@@ -36,6 +40,10 @@ mount_webdav_if_enabled() {
 
   rclone --config "$RCLONE_CFG" mount alfredwebdav: "$mpath" \
     --allow-other \
+    --default-permissions \
+    --umask 002 \
+    --uid 99 \
+    --gid 100 \
     --dir-cache-time 10m \
     --vfs-cache-mode full \
     --vfs-cache-max-size 50G \
@@ -44,7 +52,9 @@ mount_webdav_if_enabled() {
     --vfs-cache-poll-interval 1m \
     --daemon
 
-  echo "[entrypoint] webdav mounted at $mpath from $url"
+  sleep 1
+  mountpoint -q "$mpath" || { echo "[entrypoint] rclone mount failed at $mpath"; exit 1; }
+  echo "[entrypoint] webdav mounted at $mpath from $url (host-visible via bind propagation)"
 }
 
 mount_webdav_if_enabled
