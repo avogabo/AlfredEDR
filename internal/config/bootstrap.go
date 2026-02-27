@@ -28,9 +28,9 @@ func EnsureConfigFile(path string) error {
 		return err
 	}
 
-	// Safe defaults for first boot: no runner/watch, no creds.
+	// Safe defaults for first boot: runner enabled so queued jobs execute; no creds.
 	cfg := Default()
-	cfg.Runner.Enabled = false
+	cfg.Runner.Enabled = true
 	cfg.Watch.NZB.Enabled = false
 	cfg.Watch.Media.Enabled = false
 	cfg.NgPost.Enabled = false
