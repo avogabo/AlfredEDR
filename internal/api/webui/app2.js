@@ -284,6 +284,7 @@ function showPage(name) {
 // NOTE: the actual mount root inside the container is typically /host/mount/*.
 // We discover it from the backend to avoid hardcoding /mount/* which breaks on Unraid.
 let AUTO_ROOT = '/mount/library';
+let MAN_ROOT = '/mount/library-manual';
 let autoPath = AUTO_ROOT;
 let manPath = MAN_ROOT;
 let manualDirId = 'root';
@@ -307,7 +308,7 @@ async function initLibraryRoots() {
   if (!autoPath || autoPath === '/mount/library-auto' || autoPath.startsWith('/mount/library-auto/')) {
     autoPath = AUTO_ROOT;
   }
-  }
+}
 
 function renderCrumbs(boxId, path, root, onPick) {
   const box = document.getElementById(boxId);
