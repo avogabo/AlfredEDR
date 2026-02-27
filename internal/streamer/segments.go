@@ -145,8 +145,8 @@ func (s *Streamer) StreamRange(ctx context.Context, importID string, fileIdx int
 	// then stream using real decoded segment sizes from cache/files.
 	writtenAny := false
 
-	accurateMode := prefetch < 0
-	if accurateMode {
+	nyuuMode := prefetch < 0
+	if nyuuMode {
 		prefetch = -prefetch
 	}
 
@@ -156,16 +156,19 @@ func (s *Streamer) StreamRange(ctx context.Context, importID string, fileIdx int
 	if startIdx < 0 {
 		startIdx = 0
 	}
-	// Small backtrack window to absorb encoded-vs-decoded drift.
-	if startIdx > 2 {
-		startIdx -= 2
+	// Backtrack window to absorb encoded-vs-decoded drift.
+	// Nyuu-posted releases can drift more, so widen the window without full scan.
+	backtrack := 2
+	if nyuuMode {
+		backtrack = 256
+	}
+	if startIdx > backtrack {
+		startIdx -= backtrack
 	} else {
 		startIdx = 0
 	}
 	off := int64(0)
-	if accurateMode {
-		startIdx = 0
-	} else if startIdx < len(layout.Offsets) {
+	if startIdx < len(layout.Offsets) {
 		off = layout.Offsets[startIdx]
 	}
 
