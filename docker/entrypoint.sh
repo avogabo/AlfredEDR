@@ -62,4 +62,4 @@ mount_webdav_if_enabled() {
 }
 
 mount_webdav_if_enabled
-exec /usr/local/bin/alfrededr -config "$CFG"
+exec /usr/local/bin/alfrededr -fuse=false -config "$CFG"
