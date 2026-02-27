@@ -3,6 +3,23 @@ set -euo pipefail
 
 CFG="${ALFRED_CONFIG:-/config/config.json}"
 RCLONE_CFG="/tmp/rclone-alfred.conf"
+ALF_PID=""
+
+start_alfred() {
+  /usr/local/bin/alfrededr -fuse=false -config "$CFG" &
+  ALF_PID=$!
+}
+
+wait_alfred_live() {
+  local i
+  for i in $(seq 1 60); do
+    if curl -fsS http://127.0.0.1:1516/live >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
 
 mount_webdav_if_enabled() {
   [ -f "$CFG" ] || return 0
@@ -21,11 +38,10 @@ mount_webdav_if_enabled() {
   fi
   if [[ "$mpath" != /host/* ]]; then
     echo "[entrypoint] mount_path must be under /host for host visibility (got: $mpath)"
-    exit 1
+    return 1
   fi
 
   mkdir -p "$mpath"
-  # clean stale mounts first (previous fuse/rclone leftovers)
   umount -l "$mpath" >/dev/null 2>&1 || true
   fusermount3 -uz "$mpath" >/dev/null 2>&1 || true
   pkill -f "rclone mount alfredwebdav:" >/dev/null 2>&1 || true
@@ -57,9 +73,21 @@ mount_webdav_if_enabled() {
     --daemon
 
   sleep 1
-  mountpoint -q "$mpath" || { echo "[entrypoint] rclone mount failed at $mpath"; exit 1; }
+  mountpoint -q "$mpath" || { echo "[entrypoint] rclone mount failed at $mpath"; return 1; }
   echo "[entrypoint] webdav mounted at $mpath from $url (host-visible via bind propagation)"
 }
 
-mount_webdav_if_enabled
-exec /usr/local/bin/alfrededr -fuse=false -config "$CFG"
+start_alfred
+if ! wait_alfred_live; then
+  echo "[entrypoint] Alfred failed to become healthy"
+  wait "$ALF_PID"
+  exit 1
+fi
+
+if ! mount_webdav_if_enabled; then
+  kill "$ALF_PID" >/dev/null 2>&1 || true
+  wait "$ALF_PID" || true
+  exit 1
+fi
+
+wait "$ALF_PID"

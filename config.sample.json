@@ -88,7 +88,7 @@
   },
   "webdav_mount": {
     "enabled": false,
-    "url": "http://127.0.0.1:8989/webdav",
+    "url": "http://127.0.0.1:1516/webdav",
     "user": "",
     "pass": "",
     "mount_path": "/host/mount/library"

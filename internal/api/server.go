@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 
+	"golang.org/x/net/webdav"
+
 	"github.com/avogabo/AlfredEDR/internal/config"
 	"github.com/avogabo/AlfredEDR/internal/db"
 	"github.com/avogabo/AlfredEDR/internal/jobs"
@@ -79,6 +81,27 @@ func New(cfg config.Config, opts Options) (*Server, func() error, error) {
 			"commit":  version.Commit,
 		})
 	})
+
+	// Native WebDAV endpoint (read-only) for external mounts (rclone/Plex).
+	webdavRoot := "/host/inbox/media"
+	if p := strings.TrimSpace(cfg.Watch.Media.Dir); p != "" {
+		webdavRoot = p
+	}
+	wd := &webdav.Handler{
+		Prefix:     "/webdav",
+		FileSystem: webdav.Dir(webdavRoot),
+		LockSystem: webdav.NewMemLS(),
+	}
+	s.mux.Handle("/webdav/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet, http.MethodHead, http.MethodOptions:
+			wd.ServeHTTP(w, r)
+		case "PROPFIND":
+			wd.ServeHTTP(w, r)
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	}))
 
 	// Basic API (UI consumes this)
 	s.mux.HandleFunc("/api/v1/config", func(w http.ResponseWriter, r *http.Request) {
