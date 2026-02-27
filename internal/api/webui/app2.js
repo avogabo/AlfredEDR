@@ -305,7 +305,7 @@ async function initLibraryRoots() {
   }
 
   // If we were still on the old hardcoded root, reset to discovered root.
-  if (!autoPath || autoPath === '/mount/library-auto' || autoPath.startsWith('/mount/library-auto/')) {
+  if (!autoPath || autoPath === '/mount/library' || autoPath.startsWith('/mount/library/') || autoPath === '/mount/library-auto' || autoPath.startsWith('/mount/library-auto/')) {
     autoPath = AUTO_ROOT;
   }
 }
