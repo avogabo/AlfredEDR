@@ -75,13 +75,22 @@ type Backups struct {
 	AutoRestore bool   `json:"auto_restore"` // reserved
 }
 
+type WebDAVMount struct {
+	Enabled   bool   `json:"enabled"`
+	URL       string `json:"url"`
+	User      string `json:"user"`
+	Pass      string `json:"pass"`
+	MountPath string `json:"mount_path"`
+}
+
 type Config struct {
 	Server Server `json:"server"`
 	Paths  Paths  `json:"paths"`
 	Runner Runner `json:"runner"`
 
-	NgPost   NgPost           `json:"ngpost"`
-	Download DownloadProvider `json:"download"`
+	NgPost      NgPost           `json:"ngpost"`
+	Download    DownloadProvider `json:"download"`
+	WebDAVMount WebDAVMount      `json:"webdav_mount"`
 
 	Library  Library      `json:"library"`
 	Metadata Metadata     `json:"metadata"`
@@ -106,9 +115,10 @@ func Default() Config {
 		},
 		Runner: Runner{Enabled: true, Mode: "exec"}, // default: real execution (not stub)
 
-		NgPost:   NgPost{Enabled: false, Port: 563, SSL: true, Connections: 20, Threads: 2, OutputDir: "/host/inbox/nzb", Obfuscate: true},
-		Download: DownloadProvider{Enabled: false, Port: 563, SSL: true, Connections: 20, PrefetchSegments: 50},
-		Library:  (Library{Enabled: true, UppercaseFolders: true}).withDefaults(),
+		NgPost:      NgPost{Enabled: false, Port: 563, SSL: true, Connections: 20, Threads: 2, OutputDir: "/host/inbox/nzb", Obfuscate: true},
+		Download:    DownloadProvider{Enabled: false, Port: 563, SSL: true, Connections: 20, PrefetchSegments: 50},
+		WebDAVMount: WebDAVMount{Enabled: false, MountPath: "/host/mount/library"},
+		Library:     (Library{Enabled: true, UppercaseFolders: true}).withDefaults(),
 		Metadata: (Metadata{}).withDefaults(),
 		Plex:     (Plex{}).withDefaults(),
 		Upload:   Upload{Provider: "nyuu", Par: UploadPar{Enabled: true, RedundancyPercent: 20, KeepParityFiles: true, Dir: "/host/inbox/par2"}},
@@ -182,6 +192,9 @@ func Load(path string) (Config, error) {
 	}
 	if cfg.Upload.Provider == "" {
 		cfg.Upload.Provider = "nyuu"
+	}
+	if strings.TrimSpace(cfg.WebDAVMount.MountPath) == "" {
+		cfg.WebDAVMount.MountPath = "/host/mount/library"
 	}
 	// FileBot is mandatory for both rename phases.
 	cfg.Rename.Provider = "filebot"

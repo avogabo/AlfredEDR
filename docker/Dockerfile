@@ -15,7 +15,7 @@ RUN go build -ldflags "-X github.com/avogabo/AlfredEDR/internal/version.Version=
 RUN go install github.com/javi11/nzb-repair@v0.0.3
 
 FROM ubuntu:jammy AS runtime
-RUN apt-get update && apt-get install -y ca-certificates fuse3 curl libglib2.0-0 par2 openjdk-17-jre-headless xz-utils mediainfo libmediainfo0v5 libmms0 locales && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ca-certificates fuse3 curl jq rclone libglib2.0-0 par2 openjdk-17-jre-headless xz-utils mediainfo libmediainfo0v5 libmms0 locales && rm -rf /var/lib/apt/lists/*
 
 # ngpost's bundled Qt expects OpenSSL 1.1 (libcrypto.so.1.1/libssl.so.1.1).
 # Ubuntu jammy ships OpenSSL 3, so we temporarily add focal to install libssl1.1.
@@ -99,13 +99,11 @@ RUN if [ "$INSTALL_NYUU" = "1" ]; then \
     echo "Skipping nyuu install (INSTALL_NYUU=0)"; \
   fi
 
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint-alfred.sh
+RUN chmod +x /usr/local/bin/entrypoint-alfred.sh
+
 # runtime dirs
 RUN mkdir -p /config /host /cache /backups
 EXPOSE 1516
 
-# FUSE requires these at runtime:
-# - /dev/fuse
-# - --cap-add SYS_ADMIN
-# - potentially apparmor:unconfined on Unraid
-
-ENTRYPOINT ["/usr/local/bin/alfrededr","-fuse","-config","/config/config.json"]
+ENTRYPOINT ["/usr/local/bin/entrypoint-alfred.sh"]

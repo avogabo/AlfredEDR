@@ -86,6 +86,13 @@
     "connections": 20,
     "prefetch_segments": 50
   },
+  "webdav_mount": {
+    "enabled": false,
+    "url": "http://127.0.0.1:8989/webdav",
+    "user": "",
+    "pass": "",
+    "mount_path": "/host/mount/library"
+  },
   "backups": {
     "enabled": false,
     "dir": "/backups",
