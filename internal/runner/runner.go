@@ -388,14 +388,9 @@ func (r *Runner) runUpload(ctx context.Context, j *jobs.Job) {
 				}, r.NyuuPath, args...)
 				if err != nil {
 					msg := err.Error()
-					if strings.Contains(strings.ToLower(msg), "illegal instruction") {
-						_ = r.jobs.AppendLog(ctx, j.ID, "WARN: nyuu crashed with illegal instruction; retrying with ngpost")
-						provider = "ngpost"
-					} else {
-						_ = r.jobs.AppendLog(ctx, j.ID, "ERROR: "+msg)
-						_ = r.jobs.SetFailed(ctx, j.ID, msg)
-						return
-					}
+					_ = r.jobs.AppendLog(ctx, j.ID, "ERROR: "+msg)
+					_ = r.jobs.SetFailed(ctx, j.ID, msg)
+					return
 				}
 				if provider == "nyuu" {
 					// Move staging NZB into the watched NZB inbox only after the uploader has finished.

@@ -80,8 +80,10 @@ RUN mkdir -p /opt/filebot \
   && ln -sf /opt/filebot/filebot.sh /usr/local/bin/filebot
 
 # ---- nyuu (Nyuu-Obfuscation fork) ----
+# Source: https://github.com/Antidote2151/Nyuu-Obfuscation
 # Nyuu is node-based and OPTIONAL for local builds/tests.
 ARG INSTALL_NYUU=1
+ARG NYUU_REPO=github:Antidote2151/Nyuu-Obfuscation
 RUN if [ "$INSTALL_NYUU" = "1" ]; then \
     set -e; \
     for i in 1 2 3; do \
@@ -92,7 +94,7 @@ RUN if [ "$INSTALL_NYUU" = "1" ]; then \
       sleep 5; \
     done; \
     rm -rf /var/lib/apt/lists/*; \
-    npm install -g --production --unsafe-perm nyuu; \
+    npm install -g --production --unsafe-perm "$NYUU_REPO"; \
   else \
     echo "Skipping nyuu install (INSTALL_NYUU=0)"; \
   fi

@@ -54,7 +54,7 @@
     "plex_root": "/mnt/media/library-auto"
   },
   "upload": {
-    "provider": "ngpost",
+    "provider": "nyuu",
     "par": {
       "enabled": true,
       "redundancy_percent": 20,
