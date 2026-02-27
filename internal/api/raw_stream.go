@@ -140,11 +140,11 @@ func (s *Server) handleRawFileStream(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Preflight a tiny chunk to avoid sending 206 headers if backend fetch fails.
-		probeEnd := br.Start + 64*1024 - 1
+		probeEnd := br.Start + 256*1024 - 1
 		if probeEnd > br.End {
 			probeEnd = br.End
 		}
-		if err := st.StreamRange(ctx, importID, fileIdx, filename, br.Start, probeEnd, io.Discard, 1); err != nil {
+		if err := st.StreamRange(ctx, importID, fileIdx, filename, br.Start, probeEnd, io.Discard, 4); err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadGateway)
 			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
@@ -154,7 +154,7 @@ func (s *Server) handleRawFileStream(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", length))
 		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", br.Start, br.End, size))
 		w.WriteHeader(http.StatusPartialContent)
-		if err := st.StreamRange(ctx, importID, fileIdx, filename, br.Start, br.End, w, 2); err != nil {
+		if err := st.StreamRange(ctx, importID, fileIdx, filename, br.Start, br.End, w, 8); err != nil {
 			log.Printf("raw stream range failed import=%s fileIdx=%d err=%v", importID, fileIdx, err)
 		}
 		return
@@ -298,11 +298,11 @@ func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Preflight a tiny chunk to avoid returning 206 when backend cannot provide bytes.
-		probeEnd := br.Start + 64*1024 - 1
+		probeEnd := br.Start + 256*1024 - 1
 		if probeEnd > br.End {
 			probeEnd = br.End
 		}
-		if err := st.StreamRange(ctx, importID, fileIdx, filename, br.Start, probeEnd, io.Discard, 1); err != nil {
+		if err := st.StreamRange(ctx, importID, fileIdx, filename, br.Start, probeEnd, io.Discard, 4); err != nil {
 			log.Printf("PLAY stream preflight failed import=%s fileIdx=%d err=%v", importID, fileIdx, err)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadGateway)
@@ -312,7 +312,7 @@ func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", length))
 		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", br.Start, br.End, size))
 		w.WriteHeader(http.StatusPartialContent)
-		if err := st.StreamRange(ctx, importID, fileIdx, filename, br.Start, br.End, w, 2); err != nil {
+		if err := st.StreamRange(ctx, importID, fileIdx, filename, br.Start, br.End, w, 8); err != nil {
 			log.Printf("PLAY stream range failed import=%s fileIdx=%d err=%v", importID, fileIdx, err)
 		}
 		return
