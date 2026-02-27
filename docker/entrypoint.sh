@@ -25,6 +25,9 @@ mount_webdav_if_enabled() {
   fi
 
   mkdir -p "$mpath"
+  # clean stale mounts first (previous fuse/rclone leftovers)
+  umount -l "$mpath" >/dev/null 2>&1 || true
+  fusermount3 -uz "$mpath" >/dev/null 2>&1 || true
   pkill -f "rclone mount alfredwebdav:" >/dev/null 2>&1 || true
 
   {
@@ -40,6 +43,7 @@ mount_webdav_if_enabled() {
 
   rclone --config "$RCLONE_CFG" mount alfredwebdav: "$mpath" \
     --allow-other \
+    --allow-non-empty \
     --default-permissions \
     --umask 002 \
     --uid 99 \
