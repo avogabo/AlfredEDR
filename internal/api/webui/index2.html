@@ -140,7 +140,7 @@
         <b>AlfredEDR</b>
       </div>
       <div class="hdrRight">
-        <span class="pill" id="buildVersionPill">v1.3</span>
+        <span class="pill" id="buildVersionPill">v1.6</span>
         <button class="btn" id="btnRestartTop">Reiniciar (Restart)</button>
       </div>
     </header>
@@ -679,5 +679,26 @@
 
   <script src="/webui/app2.js"></script>
   <script src="/webui/upload2.js"></script>
+
+  <div id="compatGhost" style="display:none">
+    <input id="setLibEnabled" type="checkbox" />
+    <input id="setHealthEnabled" type="checkbox" />
+    <input id="setHealthScanEnabled" type="checkbox" />
+    <input id="setHealthAutoRepair" type="checkbox" />
+    <input id="setHealthMaxDurationMins" />
+    <input id="setHealthChunkEveryHours" />
+    <input id="setHealthIntervalHours" />
+    <input id="setHealthLockTTLHours" />
+    <button id="btnImportsRefresh" type="button"></button>
+    <button id="btnHealthScan" type="button"></button>
+    <button id="btnHealthRefresh" type="button"></button>
+    <button id="btnHealthUp" type="button"></button>
+    <div id="importsList"></div>
+    <div id="healthList"></div>
+    <span id="healthStatus"></span>
+    <span id="healthSummary"></span>
+    <div id="healthCrumbs"></div>
+  </div>
+
 </body>
 </html>
