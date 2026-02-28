@@ -169,6 +169,10 @@ func (s *Server) handleLibraryPROPFIND(w http.ResponseWriter, r *http.Request) {
 		href = "/webdav/"
 	}
 	n, ok := nodes[href]
+	if !ok && !strings.HasSuffix(href, "/") {
+		href = href + "/"
+		n, ok = nodes[href]
+	}
 	if !ok {
 		http.NotFound(w, r)
 		return
@@ -210,6 +214,10 @@ func (s *Server) handleLibraryGETHEAD(w http.ResponseWriter, r *http.Request) {
 		href = "/webdav/"
 	}
 	n, ok := nodes[href]
+	if !ok && !strings.HasSuffix(href, "/") {
+		href = href + "/"
+		n, ok = nodes[href]
+	}
 	if !ok {
 		http.NotFound(w, r)
 		return
