@@ -21,6 +21,29 @@ wait_alfred_live() {
   return 1
 }
 
+cleanup_mountpoint() {
+  local mpath="$1"
+
+  # Stop old rclone daemons first.
+  pkill -f "rclone mount alfredwebdav:" >/dev/null 2>&1 || true
+
+  # Repeated lazy unmount attempts help clear "Transport endpoint is not connected".
+  umount -l "$mpath" >/dev/null 2>&1 || true
+  fusermount3 -uz "$mpath" >/dev/null 2>&1 || true
+  sleep 0.2
+  umount -l "$mpath" >/dev/null 2>&1 || true
+  fusermount3 -uz "$mpath" >/dev/null 2>&1 || true
+
+  # Ensure the path exists again after cleanup.
+  if ! mkdir -p "$mpath" 2>/dev/null; then
+    echo "[entrypoint] mountpoint cleanup retry for $mpath"
+    umount -l "$mpath" >/dev/null 2>&1 || true
+    fusermount3 -uz "$mpath" >/dev/null 2>&1 || true
+    sleep 0.5
+    mkdir -p "$mpath"
+  fi
+}
+
 mount_webdav_if_enabled() {
   [ -f "$CFG" ] || return 0
   local enabled url user pass mpath
@@ -41,10 +64,7 @@ mount_webdav_if_enabled() {
     return 1
   fi
 
-  mkdir -p "$mpath"
-  umount -l "$mpath" >/dev/null 2>&1 || true
-  fusermount3 -uz "$mpath" >/dev/null 2>&1 || true
-  pkill -f "rclone mount alfredwebdav:" >/dev/null 2>&1 || true
+  cleanup_mountpoint "$mpath"
 
   {
     echo "[alfredwebdav]"
