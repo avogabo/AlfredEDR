@@ -16,6 +16,7 @@ import (
 	"github.com/avogabo/AlfredEDR/internal/config"
 	"github.com/avogabo/AlfredEDR/internal/db"
 	"github.com/avogabo/AlfredEDR/internal/jobs"
+	"github.com/avogabo/AlfredEDR/internal/streamer"
 	"github.com/avogabo/AlfredEDR/internal/version"
 )
 
@@ -29,11 +30,14 @@ type Server struct {
 	mux     *http.ServeMux
 	jobs    *jobs.Store
 
-	webdavIdxMu       sync.RWMutex
-	webdavNodes       map[string]webdavNode
-	webdavDirs        map[string][]webdavNode
-	webdavIdxBuiltAt  time.Time
-	webdavIdxTTL      time.Duration
+	webdavIdxMu      sync.RWMutex
+	webdavNodes      map[string]webdavNode
+	webdavDirs       map[string][]webdavNode
+	webdavIdxBuiltAt time.Time
+	webdavIdxTTL     time.Duration
+
+	streamMu sync.Mutex
+	stream   *streamer.Streamer
 }
 
 func (s *Server) Config() config.Config {
@@ -285,3 +289,13 @@ func New(cfg config.Config, opts Options) (*Server, func() error, error) {
 func (s *Server) Handler() http.Handler { return s.mux }
 
 func (s *Server) Jobs() *jobs.Store { return s.jobs }
+
+func (s *Server) getStreamer() *streamer.Streamer {
+	s.streamMu.Lock()
+	defer s.streamMu.Unlock()
+	if s.stream == nil {
+		cfg := s.Config()
+		s.stream = streamer.New(cfg.Download, s.jobs, cfg.Paths.CacheDir, cfg.Paths.CacheMaxBytes)
+	}
+	return s.stream
+}

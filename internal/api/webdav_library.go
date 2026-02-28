@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/avogabo/AlfredEDR/internal/fusefs"
-	"github.com/avogabo/AlfredEDR/internal/streamer"
 )
 
 type webdavNode struct {
@@ -268,7 +267,7 @@ func (s *Server) handleLibraryGETHEAD(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusRequestedRangeNotSatisfiable)
 		return
 	}
-	st := streamer.New(s.Config().Download, s.jobs, s.Config().Paths.CacheDir, s.Config().Paths.CacheMaxBytes)
+	st := s.getStreamer()
 	if mr == nil {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", sz))
 		w.WriteHeader(http.StatusOK)
