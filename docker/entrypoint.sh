@@ -66,10 +66,10 @@ mount_webdav_if_enabled() {
     --gid 100 \
     --dir-cache-time 10m \
     --vfs-cache-mode full \
-    --vfs-cache-max-size 80G \
-    --vfs-read-ahead 2G \
-    --vfs-read-chunk-size 64M \
-    --buffer-size 0 \
+    --vfs-cache-max-size 50G \
+    --vfs-read-ahead 128M \
+    --vfs-read-chunk-size 16M \
+    --buffer-size 16M \
     --vfs-cache-poll-interval 1m \
     --daemon
 
