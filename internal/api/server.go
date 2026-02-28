@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"io"
@@ -27,6 +28,12 @@ type Server struct {
 	cfgPath string
 	mux     *http.ServeMux
 	jobs    *jobs.Store
+
+	webdavIdxMu       sync.RWMutex
+	webdavNodes       map[string]webdavNode
+	webdavDirs        map[string][]webdavNode
+	webdavIdxBuiltAt  time.Time
+	webdavIdxTTL      time.Duration
 }
 
 func (s *Server) Config() config.Config {
@@ -47,7 +54,7 @@ type Options struct {
 }
 
 func New(cfg config.Config, opts Options) (*Server, func() error, error) {
-	s := &Server{cfg: cfg, cfgPath: opts.ConfigPath, mux: http.NewServeMux()}
+	s := &Server{cfg: cfg, cfgPath: opts.ConfigPath, mux: http.NewServeMux(), webdavIdxTTL: 20 * time.Second}
 
 	closers := []func() error{}
 	if opts.DBPath != "" {
@@ -263,6 +270,14 @@ func New(cfg config.Config, opts Options) (*Server, func() error, error) {
 		}
 		fs.ServeHTTP(w, r)
 	}))
+
+	if s.jobs != nil {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+			defer cancel()
+			_, _, _ = s.getWebDAVIndex(ctx)
+		}()
+	}
 
 	return s, closeFn, nil
 }

@@ -179,11 +179,17 @@ func (s *Streamer) StreamRange(ctx context.Context, importID string, fileIdx int
 		if prefetch > 0 && i+1 < len(layout.Segs) {
 			for j := 1; j <= prefetch && i+j < len(layout.Segs); j++ {
 				nextSeg := layout.Segs[i+j]
-				go func(ns SegmentLocator) {
-					ctx2, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-					defer cancel()
-					_, _ = s.ensureSegment(ctx2, ns)
-				}(nextSeg)
+				select {
+				case s.prefetchSem <- struct{}{}:
+					go func(ns SegmentLocator) {
+						defer func() { <-s.prefetchSem }()
+						ctx2, cancel := context.WithTimeout(ctx, 20*time.Second)
+						defer cancel()
+						_, _ = s.ensureSegment(ctx2, ns)
+					}(nextSeg)
+				default:
+					// keep latency low for foreground range request
+				}
 			}
 		}
 

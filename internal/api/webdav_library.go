@@ -51,7 +51,7 @@ func (s *Server) handleLibraryWebDAV(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) buildWebDAVIndex(ctx context.Context) (map[string]webdavNode, map[string][]webdavNode, error) {
+func (s *Server) buildWebDAVIndexRaw(ctx context.Context) (map[string]webdavNode, map[string][]webdavNode, error) {
 	cfg := s.Config()
 	items, err := fusefs.AutoVirtualEntries(ctx, cfg, s.jobs, 8000)
 	if err != nil {
@@ -123,6 +123,27 @@ func (s *Server) buildWebDAVIndex(ctx context.Context) (map[string]webdavNode, m
 	return nodes, dirs, nil
 }
 
+func (s *Server) getWebDAVIndex(ctx context.Context) (map[string]webdavNode, map[string][]webdavNode, error) {
+	s.webdavIdxMu.RLock()
+	if s.webdavNodes != nil && time.Since(s.webdavIdxBuiltAt) < s.webdavIdxTTL {
+		nodes, dirs := s.webdavNodes, s.webdavDirs
+		s.webdavIdxMu.RUnlock()
+		return nodes, dirs, nil
+	}
+	s.webdavIdxMu.RUnlock()
+
+	nodes, dirs, err := s.buildWebDAVIndexRaw(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	s.webdavIdxMu.Lock()
+	s.webdavNodes = nodes
+	s.webdavDirs = dirs
+	s.webdavIdxBuiltAt = time.Now()
+	s.webdavIdxMu.Unlock()
+	return nodes, dirs, nil
+}
+
 type multistatus struct {
 	XMLName   xml.Name   `xml:"D:multistatus"`
 	XmlnsD    string     `xml:"xmlns:D,attr"`
@@ -151,7 +172,7 @@ type resourcety struct {
 }
 
 func (s *Server) handleLibraryPROPFIND(w http.ResponseWriter, r *http.Request) {
-	nodes, dirs, err := s.buildWebDAVIndex(r.Context())
+	nodes, dirs, err := s.getWebDAVIndex(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -204,7 +225,7 @@ func mkResponse(n webdavNode) response {
 }
 
 func (s *Server) handleLibraryGETHEAD(w http.ResponseWriter, r *http.Request) {
-	nodes, _, err := s.buildWebDAVIndex(r.Context())
+	nodes, _, err := s.getWebDAVIndex(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

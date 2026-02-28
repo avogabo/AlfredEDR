@@ -22,8 +22,9 @@ type Streamer struct {
 	jobs     *jobs.Store
 	cacheDir string
 	pool     *nntp.Pool
-	maxCache int64
-	segLocks sync.Map // cachePath -> *sync.Mutex
+	maxCache    int64
+	segLocks    sync.Map // cachePath -> *sync.Mutex
+	prefetchSem chan struct{}
 }
 
 func New(cfg config.DownloadProvider, j *jobs.Store, cacheDir string, maxCacheBytes int64) *Streamer {
@@ -36,7 +37,7 @@ func New(cfg config.DownloadProvider, j *jobs.Store, cacheDir string, maxCacheBy
 		poolSize = 64
 	}
 	p := nntp.NewPool(nntp.Config{Host: cfg.Host, Port: cfg.Port, SSL: cfg.SSL, User: cfg.User, Pass: cfg.Pass, Timeout: 15 * time.Second}, poolSize)
-	return &Streamer{cfg: cfg, jobs: j, cacheDir: cacheDir, pool: p, maxCache: maxCacheBytes}
+	return &Streamer{cfg: cfg, jobs: j, cacheDir: cacheDir, pool: p, maxCache: maxCacheBytes, prefetchSem: make(chan struct{}, 8)}
 }
 
 type segRow struct {
