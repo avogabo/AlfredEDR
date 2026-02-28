@@ -84,13 +84,15 @@ mount_webdav_if_enabled() {
     --umask 002 \
     --uid 99 \
     --gid 100 \
-    --dir-cache-time 1m \
-    --poll-interval 30s \
+    --dir-cache-time 5s \
+    --poll-interval 5s \
     --vfs-cache-mode full \
-    --vfs-cache-max-size 50G \
-    --vfs-cache-max-age 12h \
-    --vfs-read-ahead 512M \
-    --buffer-size 128M \
+    --vfs-cache-max-size 150G \
+    --vfs-cache-max-age 6h \
+    --vfs-read-chunk-size 56M \
+    --vfs-read-chunk-size-limit 2G \
+    --vfs-read-ahead 8G \
+    --buffer-size 0 \
     --vfs-cache-poll-interval 1m \
     --timeout 1m \
     --retries 3 \
