@@ -353,8 +353,8 @@ func withSuffixBeforeExt(name string, n int) string {
 
 
 func prefetchForSubject(subj string, base int) int {
-	if base < 1 {
-		base = 1
+	if base <= 0 {
+		return 0
 	}
 	ls := strings.ToLower(strings.TrimSpace(subj))
 	// Nyuu-Obfuscation default here uses quoted filename + yEnc in NZB subject.

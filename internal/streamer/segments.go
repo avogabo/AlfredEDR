@@ -160,7 +160,9 @@ func (s *Streamer) StreamRange(ctx context.Context, importID string, fileIdx int
 	// Nyuu-posted releases can drift more, so widen the window without full scan.
 	backtrack := 2
 	if nyuuMode {
-		backtrack = 256
+		// Keep startup snappy for WebDAV first-byte by limiting initial rewind.
+		// If this under-shoots on some posts, we still continue forward and can fallback later.
+		backtrack = 24
 	}
 	if startIdx > backtrack {
 		startIdx -= backtrack
@@ -174,24 +176,6 @@ func (s *Streamer) StreamRange(ctx context.Context, importID string, fileIdx int
 
 	for i := startIdx; i < len(layout.Segs); i++ {
 		seg := layout.Segs[i]
-
-		// Prefetch best-effort: do not block on errors/results.
-		if prefetch > 0 && i+1 < len(layout.Segs) {
-			for j := 1; j <= prefetch && i+j < len(layout.Segs); j++ {
-				nextSeg := layout.Segs[i+j]
-				select {
-				case s.prefetchSem <- struct{}{}:
-					go func(ns SegmentLocator) {
-						defer func() { <-s.prefetchSem }()
-						ctx2, cancel := context.WithTimeout(ctx, 20*time.Second)
-						defer cancel()
-						_, _ = s.ensureSegment(ctx2, ns)
-					}(nextSeg)
-				default:
-					// keep latency low for foreground range request
-				}
-			}
-		}
 
 		p, err := s.ensureSegment(ctx, seg)
 		if err != nil {
@@ -238,6 +222,25 @@ func (s *Streamer) StreamRange(ctx context.Context, importID string, fileIdx int
 		}
 		_ = f.Close()
 		writtenAny = true
+
+		// Prefetch only after first bytes are already flowing to client.
+		// This protects startup latency from background warm-up work.
+		if prefetch > 0 && i+1 < len(layout.Segs) {
+			for j := 1; j <= prefetch && i+j < len(layout.Segs); j++ {
+				nextSeg := layout.Segs[i+j]
+				select {
+				case s.prefetchSem <- struct{}{}:
+					go func(ns SegmentLocator) {
+						defer func() { <-s.prefetchSem }()
+						ctx2, cancel := context.WithTimeout(ctx, 20*time.Second)
+						defer cancel()
+						_, _ = s.ensureSegment(ctx2, ns)
+					}(nextSeg)
+				default:
+					// keep latency low for foreground range request
+				}
+			}
+		}
 		if sliceEnd == end {
 			break
 		}
