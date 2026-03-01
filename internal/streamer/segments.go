@@ -174,78 +174,95 @@ func (s *Streamer) StreamRange(ctx context.Context, importID string, fileIdx int
 		off = layout.Offsets[startIdx]
 	}
 
-	for i := startIdx; i < len(layout.Segs); i++ {
-		seg := layout.Segs[i]
+	streamFrom := func(fromIdx int, fromOff int64) (bool, error) {
+		localWritten := false
+		offLocal := fromOff
+		for i := fromIdx; i < len(layout.Segs); i++ {
+			seg := layout.Segs[i]
 
-		p, err := s.ensureSegment(ctx, seg)
-		if err != nil {
-			return err
-		}
-		st, err := os.Stat(p)
-		if err != nil {
-			return err
-		}
-		segSize := st.Size()
-		if segSize <= 0 {
-			continue
-		}
-		segStart := off
-		segEnd := off + segSize - 1
-		off += segSize
+			p, err := s.ensureSegment(ctx, seg)
+			if err != nil {
+				return localWritten, err
+			}
+			st, err := os.Stat(p)
+			if err != nil {
+				return localWritten, err
+			}
+			segSize := st.Size()
+			if segSize <= 0 {
+				continue
+			}
+			segStart := offLocal
+			segEnd := offLocal + segSize - 1
+			offLocal += segSize
 
-		if start > segEnd {
-			continue
-		}
-		if end < segStart {
-			break
-		}
+			if start > segEnd {
+				continue
+			}
+			if end < segStart {
+				break
+			}
 
-		f, err := os.Open(p)
-		if err != nil {
-			return err
-		}
-		sliceStart := start
-		if sliceStart < segStart {
-			sliceStart = segStart
-		}
-		sliceEnd := end
-		if sliceEnd > segEnd {
-			sliceEnd = segEnd
-		}
-		if _, err := f.Seek(sliceStart-segStart, 0); err != nil {
+			f, err := os.Open(p)
+			if err != nil {
+				return localWritten, err
+			}
+			sliceStart := start
+			if sliceStart < segStart {
+				sliceStart = segStart
+			}
+			sliceEnd := end
+			if sliceEnd > segEnd {
+				sliceEnd = segEnd
+			}
+			if _, err := f.Seek(sliceStart-segStart, 0); err != nil {
+				_ = f.Close()
+				return localWritten, err
+			}
+			if _, err := io.CopyN(w, f, (sliceEnd-sliceStart)+1); err != nil {
+				_ = f.Close()
+				return localWritten, err
+			}
 			_ = f.Close()
-			return err
-		}
-		if _, err := io.CopyN(w, f, (sliceEnd-sliceStart)+1); err != nil {
-			_ = f.Close()
-			return err
-		}
-		_ = f.Close()
-		writtenAny = true
+			localWritten = true
 
-		// Prefetch only after first bytes are already flowing to client.
-		// This protects startup latency from background warm-up work.
-		if prefetch > 0 && i+1 < len(layout.Segs) {
-			for j := 1; j <= prefetch && i+j < len(layout.Segs); j++ {
-				nextSeg := layout.Segs[i+j]
-				select {
-				case s.prefetchSem <- struct{}{}:
-					go func(ns SegmentLocator) {
-						defer func() { <-s.prefetchSem }()
-						ctx2, cancel := context.WithTimeout(ctx, 20*time.Second)
-						defer cancel()
-						_, _ = s.ensureSegment(ctx2, ns)
-					}(nextSeg)
-				default:
-					// keep latency low for foreground range request
+			// Prefetch only after first bytes are already flowing to client.
+			// This protects startup latency from background warm-up work.
+			if prefetch > 0 && i+1 < len(layout.Segs) {
+				for j := 1; j <= prefetch && i+j < len(layout.Segs); j++ {
+					nextSeg := layout.Segs[i+j]
+					select {
+					case s.prefetchSem <- struct{}{}:
+						go func(ns SegmentLocator) {
+							defer func() { <-s.prefetchSem }()
+							ctx2, cancel := context.WithTimeout(ctx, 20*time.Second)
+							defer cancel()
+							_, _ = s.ensureSegment(ctx2, ns)
+						}(nextSeg)
+					default:
+						// keep latency low for foreground range request
+					}
 				}
 			}
+			if sliceEnd == end {
+				break
+			}
 		}
-		if sliceEnd == end {
-			break
-		}
+		return localWritten, nil
 	}
 
+	writtenAny, err = streamFrom(startIdx, off)
+	if err != nil {
+		return err
+	}
+	if !writtenAny && nyuuMode && start > 0 {
+		// Resume requests (non-zero ranges) can suffer large encoded-vs-decoded drift on some posts.
+		// Fallback to an exact scan from segment 0 to reliably locate the requested offset.
+		writtenAny, err = streamFrom(0, 0)
+		if err != nil {
+			return err
+		}
+	}
 	if !writtenAny {
 		// Requested range starts beyond currently addressable decoded data.
 		// For FUSE readers this should behave like EOF (empty read), not I/O error.
