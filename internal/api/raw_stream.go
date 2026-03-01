@@ -363,3 +363,16 @@ func prefetchForSubject(subj string, base int) int {
 	}
 	return base
 }
+
+func prefetchForSizeSubject(size int64, subj string) int {
+	base := 4
+	switch {
+	case size >= 20*(1<<30):
+		base = 16
+	case size >= 10*(1<<30):
+		base = 12
+	case size >= 4*(1<<30):
+		base = 8
+	}
+	return prefetchForSubject(subj, base)
+}

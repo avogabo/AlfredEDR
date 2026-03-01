@@ -274,7 +274,7 @@ func (s *Server) handleLibraryGETHEAD(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodHead {
 			return
 		}
-		_ = st.StreamRange(r.Context(), n.Entry.ImportID, n.Entry.FileIdx, n.Entry.Filename, 0, sz-1, w, prefetchForSubject(n.Entry.Subject, 0))
+		_ = st.StreamRange(r.Context(), n.Entry.ImportID, n.Entry.FileIdx, n.Entry.Filename, 0, sz-1, w, prefetchForSizeSubject(sz, n.Entry.Subject))
 		return
 	}
 	if len(mr.Ranges) != 1 {
@@ -289,5 +289,5 @@ func (s *Server) handleLibraryGETHEAD(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodHead {
 		return
 	}
-	_ = st.StreamRange(r.Context(), n.Entry.ImportID, n.Entry.FileIdx, n.Entry.Filename, br.Start, br.End, w, prefetchForSubject(n.Entry.Subject, 0))
+	_ = st.StreamRange(r.Context(), n.Entry.ImportID, n.Entry.FileIdx, n.Entry.Filename, br.Start, br.End, w, prefetchForSizeSubject(sz, n.Entry.Subject))
 }
