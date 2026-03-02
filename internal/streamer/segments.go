@@ -158,11 +158,10 @@ func (s *Streamer) StreamRange(ctx context.Context, importID string, fileIdx int
 	}
 	// Backtrack window to absorb encoded-vs-decoded drift.
 	// Nyuu-posted releases can drift more, so widen the window without full scan.
-	backtrack := 2
+	backtrack := 8
 	if nyuuMode {
 		// Keep startup snappy for WebDAV first-byte by limiting initial rewind.
-		// If this under-shoots on some posts, we still continue forward and can fallback later.
-		backtrack = 24
+		backtrack = 12
 	}
 	if startIdx > backtrack {
 		startIdx -= backtrack
@@ -255,8 +254,8 @@ func (s *Streamer) StreamRange(ctx context.Context, importID string, fileIdx int
 	if err != nil {
 		return err
 	}
-	if !writtenAny && nyuuMode && start > 0 {
-		// Resume requests (non-zero ranges) can suffer large encoded-vs-decoded drift on some posts.
+	if !writtenAny && start > 0 {
+		// Resume requests (non-zero ranges) can suffer encoded-vs-decoded drift depending on uploader.
 		// Fallback to an exact scan from segment 0 to reliably locate the requested offset.
 		writtenAny, err = streamFrom(0, 0)
 		if err != nil {
