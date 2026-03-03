@@ -6,39 +6,40 @@
   <title>AlfredEDR</title>
   <style>
     :root{
-      --bg:#0b1020;
-      --panel:#0f172a;
-      --card:#0b1224;
-      --text:#e7eefc;
-      --muted:#9aa7c0;
-      --line:rgba(255,255,255,.08);
-      --btn:#111a33;
-      --btnHover:#162247;
-      --accent:#4f9cff;
-      --danger:#ff5a6b;
-      --ok:#22c55e;
+      --bg:#07122d;
+      --panel:#0a1938;
+      --card:#0c2145;
+      --text:#f6f4ea;
+      --muted:#b5bfd2;
+      --line:rgba(231,223,196,.18);
+      --btn:#132953;
+      --btnHover:#1a386f;
+      --accent:#e8dcc0;
+      --danger:#ff6b7a;
+      --ok:#38d480;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       --sans: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, sans-serif;
     }
     *{ box-sizing:border-box; }
-    body{ margin:0; font-family:var(--sans); background:linear-gradient(180deg, var(--bg), #070b16); color:var(--text); }
+    body{ margin:0; font-family:var(--sans); background:radial-gradient(circle at top left, #0a2a58 0%, var(--bg) 40%, #050b18 100%); color:var(--text); }
     a{ color:inherit; text-decoration:none; }
 
-    .app{ min-height:100vh; display:grid; grid-template-rows:56px 1fr; }
+    .app{ min-height:100vh; display:grid; grid-template-rows:82px 1fr; }
     header{
       display:flex; align-items:center; justify-content:space-between;
-      padding:0 16px; border-bottom:1px solid var(--line);
+      padding:8px 16px; border-bottom:1px solid var(--line);
       background:
-        linear-gradient(90deg, rgba(11,16,32,.92), rgba(11,16,32,.72)),
+        linear-gradient(90deg, rgba(3,12,33,.88), rgba(3,12,33,.65) 45%, rgba(3,12,33,.9)),
         url('/webui/assets/banner.jpg');
       background-size: cover;
-      background-position: center;
-      backdrop-filter: blur(10px);
+      background-position: center 35%;
+      backdrop-filter: blur(4px);
       position:sticky; top:0; z-index:10;
     }
-    .brand{ display:flex; align-items:center; gap:10px; }
-    .logoImg{ width:34px; height:34px; border-radius:10px; object-fit:cover; box-shadow: 0 0 0 1px rgba(255,255,255,.10) inset; }
-    .brand b{ letter-spacing:.2px; }
+    .brand{ display:flex; align-items:center; gap:12px; }
+    .logoImg{ width:56px; height:56px; border-radius:14px; object-fit:cover; box-shadow: 0 0 0 1px rgba(231,223,196,.35) inset, 0 6px 16px rgba(0,0,0,.35); }
+    .brand b{ letter-spacing:.3px; font-size:20px; text-shadow:0 1px 1px rgba(0,0,0,.5); }
+    .brandSub{ display:block; color:var(--muted); font-size:12px; margin-top:2px; }
     .hdrRight{ display:flex; align-items:center; gap:10px; color:var(--muted); font-size:13px; }
 
     .main{ display:grid; grid-template-columns:260px 1fr; gap:14px; padding:14px; }
@@ -47,8 +48,8 @@
       border:1px solid var(--line);
       border-radius:14px;
       padding:12px;
-      height: calc(100vh - 56px - 28px);
-      position:sticky; top:70px;
+      height: calc(100vh - 82px - 28px);
+      position:sticky; top:96px;
     }
     .navItem{
       display:flex; align-items:center; gap:10px;
@@ -57,15 +58,16 @@
       cursor:pointer;
     }
     .navItem:hover{ background:rgba(255,255,255,.04); color:var(--text); }
-    .navItem.active{ background:rgba(79,156,255,.15); color:var(--text); border:1px solid rgba(79,156,255,.25); }
+    .navItem.active{ background:linear-gradient(90deg, rgba(232,220,192,.22), rgba(232,220,192,.08)); color:var(--text); border:1px solid rgba(232,220,192,.35); }
     .navTitle{ font-size:13px; margin:8px 10px; color:var(--muted); text-transform:uppercase; letter-spacing:.12em; }
 
     .work{
-      background:rgba(15,23,42,.35);
+      background:linear-gradient(180deg, rgba(8,24,55,.72), rgba(7,18,42,.62));
       border:1px solid var(--line);
       border-radius:14px;
       padding:16px;
       min-height:500px;
+      box-shadow: 0 14px 35px rgba(0,0,0,.25);
     }
     .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .btn{
@@ -78,7 +80,7 @@
       font-size:14px;
     }
     .btn:hover{ background:var(--btnHover); }
-    .btn.primary{ background:rgba(79,156,255,.18); border-color:rgba(79,156,255,.35); }
+    .btn.primary{ background:rgba(232,220,192,.2); border-color:rgba(232,220,192,.45); color:#fff7df; }
     .btn.danger{ background:rgba(255,90,107,.14); border-color:rgba(255,90,107,.25); }
     .pill{
       display:inline-flex; align-items:center; gap:8px;
@@ -124,6 +126,14 @@
     .split{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
 
     iframe{ width:100%; border:0; border-radius:14px; background:white; }
+    input, select{
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 7px 9px;
+    }
+    input::placeholder{ color:#9fb0cc; }
     .hide{ display:none !important; }
 
     @media (max-width: 860px){
@@ -137,10 +147,13 @@
     <header>
       <div class="brand">
         <img class="logoImg" src="/webui/assets/logo.jpg" alt="AlfredEDR" />
-        <b>AlfredEDR</b>
+        <div>
+          <b>AlfredEDR</b>
+          <span class="brandSub">Asistente Audiovisual</span>
+        </div>
       </div>
       <div class="hdrRight">
-        <span class="pill" id="buildVersionPill">v1.6.25</span>
+        <span class="pill" id="buildVersionPill">v1.6.26</span>
         <button class="btn" id="btnRestartTop">Reiniciar (Restart)</button>
       </div>
     </header>
@@ -680,7 +693,7 @@
     </div>
   </div>
 
-  <script src="/webui/app2.js?v=1.6.25"></script>
+  <script src="/webui/app2.js?v=1.6.26"></script>
   <script src="/webui/upload2.js"></script>
 
   <div id="compatGhost" style="display:none">
