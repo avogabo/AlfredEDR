@@ -35,8 +35,8 @@
       padding:10px 16px; border-bottom:1px solid var(--line);
       background:
         linear-gradient(90deg, rgba(3,12,33,.68), rgba(3,12,33,.24) 45%, rgba(3,12,33,.74)),
-        url('/webui/assets/banner.jpg?v=1.6.30');
-      background-size: contain;
+        url('/webui/assets/banner.jpg?v=1.6.31');
+      background-size: 100% 100%;
       background-repeat: no-repeat;
       background-position: center center;
       background-color: #071739;
@@ -148,6 +148,7 @@
     .hide{ display:none !important; }
 
     @media (max-width: 860px){
+      header{ background-size: contain; background-color:#071739; }
       .main{ grid-template-columns:1fr; }
       nav{ position:relative; top:0; height:auto; }
     }
@@ -161,7 +162,7 @@
       </div>
       <div class="hdrRight">
         <span class="muted" style="font-weight:700; color:#f2ead4; text-shadow:0 1px 1px rgba(0,0,0,.55)">Asistente Audiovisual de Enamorados Del Remux</span>
-        <span class="pill" id="buildVersionPill">v1.6.30</span>
+        <span class="pill" id="buildVersionPill">v1.6.31</span>
         <button class="btn" id="btnRestartTop">Reiniciar (Restart)</button>
       </div>
     </header>
@@ -701,7 +702,7 @@
     </div>
   </div>
 
-  <script src="/webui/app2.js?v=1.6.30"></script>
+  <script src="/webui/app2.js?v=1.6.31"></script>
   <script src="/webui/upload2.js"></script>
 
   <div id="compatGhost" style="display:none">
