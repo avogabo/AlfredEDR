@@ -24,23 +24,23 @@
     body{ margin:0; font-family:var(--sans); background:radial-gradient(circle at top left, #0a2a58 0%, var(--bg) 40%, #050b18 100%); color:var(--text); }
     a{ color:inherit; text-decoration:none; }
 
-    .app{ min-height:100vh; display:grid; grid-template-rows:82px 1fr; }
+    .app{ min-height:100vh; display:grid; grid-template-rows:108px 1fr; }
     header{
       display:flex; align-items:center; justify-content:space-between;
-      padding:8px 16px; border-bottom:1px solid var(--line);
+      padding:10px 16px; border-bottom:1px solid var(--line);
       background:
-        linear-gradient(90deg, rgba(3,12,33,.88), rgba(3,12,33,.65) 45%, rgba(3,12,33,.9)),
+        linear-gradient(90deg, rgba(3,12,33,.70), rgba(3,12,33,.30) 45%, rgba(3,12,33,.75)),
         url('/webui/assets/banner.jpg');
-      background-size: cover;
-      background-position: center 35%;
-      backdrop-filter: blur(4px);
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-color: #071739;
+      backdrop-filter: blur(2px);
       position:sticky; top:0; z-index:10;
     }
     .brand{ display:flex; align-items:center; gap:12px; }
-    .logoImg{ width:56px; height:56px; border-radius:14px; object-fit:cover; box-shadow: 0 0 0 1px rgba(231,223,196,.35) inset, 0 6px 16px rgba(0,0,0,.35); }
-    .brand b{ letter-spacing:.3px; font-size:20px; text-shadow:0 1px 1px rgba(0,0,0,.5); }
-    .brandSub{ display:block; color:var(--muted); font-size:12px; margin-top:2px; }
-    .hdrRight{ display:flex; align-items:center; gap:10px; color:var(--muted); font-size:13px; }
+    .logoImg{ width:76px; height:76px; border-radius:16px; object-fit:cover; box-shadow: 0 0 0 1px rgba(231,223,196,.35) inset, 0 6px 16px rgba(0,0,0,.35); }
+    .hdrRight{ display:flex; align-items:center; gap:10px; color:var(--muted); font-size:13px; flex-wrap:wrap; justify-content:flex-end; }
 
     .main{ display:grid; grid-template-columns:260px 1fr; gap:14px; padding:14px; }
     nav{
@@ -48,8 +48,8 @@
       border:1px solid var(--line);
       border-radius:14px;
       padding:12px;
-      height: calc(100vh - 82px - 28px);
-      position:sticky; top:96px;
+      height: calc(100vh - 108px - 28px);
+      position:sticky; top:122px;
     }
     .navItem{
       display:flex; align-items:center; gap:10px;
@@ -147,13 +147,10 @@
     <header>
       <div class="brand">
         <img class="logoImg" src="/webui/assets/logo.jpg" alt="AlfredEDR" />
-        <div>
-          <b>AlfredEDR</b>
-          <span class="brandSub">Asistente Audiovisual</span>
-        </div>
       </div>
       <div class="hdrRight">
-        <span class="pill" id="buildVersionPill">v1.6.26</span>
+        <span class="muted" style="font-weight:700; color:#f2ead4; text-shadow:0 1px 1px rgba(0,0,0,.55)">Asistente Audiovisual de Enamorados Del Remux</span>
+        <span class="pill" id="buildVersionPill">v1.6.27</span>
         <button class="btn" id="btnRestartTop">Reiniciar (Restart)</button>
       </div>
     </header>
@@ -693,7 +690,7 @@
     </div>
   </div>
 
-  <script src="/webui/app2.js?v=1.6.26"></script>
+  <script src="/webui/app2.js?v=1.6.27"></script>
   <script src="/webui/upload2.js"></script>
 
   <div id="compatGhost" style="display:none">
