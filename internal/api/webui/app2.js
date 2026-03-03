@@ -607,15 +607,19 @@ async function refreshLogsJobs() {
   set('Cargando… (Loading)');
   box.innerHTML = '';
   try {
-    const jobs = await apiGet('/api/v1/jobs');
     const filterText = (document.getElementById('logsFilter')?.value || '').trim().toLowerCase();
     const stateFilter = (document.getElementById('logsStateFilter')?.value || '').trim().toLowerCase();
+    const limit = stateFilter ? 500 : 200;
+    const qs = new URLSearchParams({ limit: String(limit) });
+    if (stateFilter) qs.set('state', stateFilter);
+    const jobs = await apiGet('/api/v1/jobs?' + qs.toString());
+
     let shown = 0;
     for (const j of jobs) {
-      const pathTxt = _safe(((j.params || {}).path || (j.payload || {}).path || '')).toLowerCase();
+      const pathVal = _safe(((j.params || {}).path || (j.payload || {}).path || ''));
+      const pathTxt = pathVal.toLowerCase();
       const typeTxt = _safe(j.type).toLowerCase();
       const stateTxt = _safe(j.state).toLowerCase();
-      if (stateFilter && stateTxt !== stateFilter) continue;
       if (filterText && !pathTxt.includes(filterText) && !typeTxt.includes(filterText) && !_safe(j.id).toLowerCase().includes(filterText) && !stateTxt.includes(filterText)) continue;
       const row = el('div', { class: 'listRow' });
       row.style.gridTemplateColumns = '90px 120px 110px 1fr 110px';
@@ -623,7 +627,7 @@ async function refreshLogsJobs() {
       row.appendChild(el('div', { class: 'mono', text: _safe(j.id).slice(0, 8) }));
       row.appendChild(el('div', { text: _safe(j.type) }));
       row.appendChild(el('div', { text: _safe(j.state) }));
-      row.appendChild(el('div', { class: 'mono muted', text: _safe((j.params || {}).path || '') }));
+      row.appendChild(el('div', { class: 'mono muted', text: pathVal }));
 
       const btn = el('button', { class: 'btn', type: 'button', text: 'Ver (View)' });
       btn.onclick = async (ev) => {
@@ -643,6 +647,19 @@ async function refreshLogsJobs() {
   } catch (e) {
     set('Error: ' + String(e));
   }
+}
+
+async function resetMediaRequeueMarks() {
+  const ok = confirm('Esto reinicia el estado de encolado de media para que se vuelva a escanear.\n\nNO borra archivos MKV ni contenido de /media.\n\n¿Continuar?');
+  if (!ok) return;
+  const typed = prompt('Escribe REQUEUE para confirmar');
+  if ((typed || '').trim().toUpperCase() !== 'REQUEUE') return;
+
+  const st = document.getElementById('logsStatus');
+  if (st) st.textContent = 'Reiniciando marcas de encolado…';
+  const r = await apiPostJson('/api/v1/watch/media/requeue', {});
+  if (st) st.textContent = `OK requeue marks reset (${r.deleted || 0}) · NO media deleted`;
+  await refreshLogsJobs();
 }
 
 async function loadJobLogs(jobId) {
@@ -1390,6 +1407,8 @@ window.addEventListener('DOMContentLoaded', () => {
     if (logsFilter) logsFilter.oninput = () => refreshLogsJobs().catch(() => {});
     const logsStateFilter = document.getElementById('logsStateFilter');
     if (logsStateFilter) logsStateFilter.onchange = () => refreshLogsJobs().catch(() => {});
+    const btnRequeue = document.getElementById('btnLogsRequeueMedia');
+    if (btnRequeue) btnRequeue.onclick = () => resetMediaRequeueMarks().catch(err => alert(String(err)));
   }
 
   // Load imports + review initially

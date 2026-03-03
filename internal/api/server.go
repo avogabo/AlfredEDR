@@ -162,21 +162,55 @@ func New(cfg config.Config, opts Options) (*Server, func() error, error) {
 			limit := 40
 			if q := strings.TrimSpace(r.URL.Query().Get("limit")); q != "" {
 				if n, err := strconv.Atoi(q); err == nil {
-					if n > 0 && n <= 200 {
+					if n > 0 && n <= 500 {
 						limit = n
 					}
 				}
 			}
+			state := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("state")))
 			items, err := s.jobs.List(r.Context(), limit)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 				return
 			}
+			if state != "" {
+				filtered := make([]jobs.Job, 0, len(items))
+				for _, it := range items {
+					if strings.ToLower(strings.TrimSpace(string(it.State))) == state {
+						filtered = append(filtered, it)
+					}
+				}
+				items = filtered
+			}
 			_ = json.NewEncoder(w).Encode(items)
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
+	})
+
+	// Watcher admin: clear media ingest seen-state to force a temporary requeue cycle.
+	// This does NOT delete media files; it only resets dedupe markers in ingest_seen.
+	s.mux.HandleFunc("/api/v1/watch/media/requeue", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if s.jobs == nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "jobs db not configured"})
+			return
+		}
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		d := s.jobs.DB().SQL
+		res, err := d.ExecContext(r.Context(), `DELETE FROM ingest_seen WHERE kind IN ('media_pending','media','media_pack_pending','media_pack')`)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+		n, _ := res.RowsAffected()
+		_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "deleted": n, "note": "media files were not deleted"})
 	})
 
 	s.mux.HandleFunc("/api/v1/jobs/enqueue/import", func(w http.ResponseWriter, r *http.Request) {
