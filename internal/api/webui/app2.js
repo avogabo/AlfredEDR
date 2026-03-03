@@ -609,10 +609,14 @@ async function refreshLogsJobs() {
   try {
     const jobs = await apiGet('/api/v1/jobs');
     const filterText = (document.getElementById('logsFilter')?.value || '').trim().toLowerCase();
+    const stateFilter = (document.getElementById('logsStateFilter')?.value || '').trim().toLowerCase();
+    let shown = 0;
     for (const j of jobs) {
-      const pathTxt = _safe((j.params || {}).path || '').toLowerCase();
+      const pathTxt = _safe(((j.params || {}).path || (j.payload || {}).path || '')).toLowerCase();
       const typeTxt = _safe(j.type).toLowerCase();
-      if (filterText && !pathTxt.includes(filterText) && !typeTxt.includes(filterText) && !_safe(j.id).toLowerCase().includes(filterText)) continue;
+      const stateTxt = _safe(j.state).toLowerCase();
+      if (stateFilter && stateTxt !== stateFilter) continue;
+      if (filterText && !pathTxt.includes(filterText) && !typeTxt.includes(filterText) && !_safe(j.id).toLowerCase().includes(filterText) && !stateTxt.includes(filterText)) continue;
       const row = el('div', { class: 'listRow' });
       row.style.gridTemplateColumns = '90px 120px 110px 1fr 110px';
 
@@ -633,8 +637,9 @@ async function refreshLogsJobs() {
       row.onclick = () => loadJobLogs(j.id).catch(() => {});
 
       box.appendChild(row);
+      shown++;
     }
-    set(`OK (${(jobs || []).length})`);
+    set(`OK (${shown}/${(jobs || []).length})`);
   } catch (e) {
     set('Error: ' + String(e));
   }
@@ -1383,6 +1388,8 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnLogsRefresh').onclick = () => refreshLogsJobs().catch(() => {});
     const logsFilter = document.getElementById('logsFilter');
     if (logsFilter) logsFilter.oninput = () => refreshLogsJobs().catch(() => {});
+    const logsStateFilter = document.getElementById('logsStateFilter');
+    if (logsStateFilter) logsStateFilter.onchange = () => refreshLogsJobs().catch(() => {});
   }
 
   // Load imports + review initially

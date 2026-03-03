@@ -42,35 +42,40 @@ func New(j *jobs.Store) *Runner {
 }
 
 func (r *Runner) Run(ctx context.Context) {
-	semUpload := make(chan struct{}, r.UploadConcurrency)
-	t := time.NewTicker(r.PollInterval)
-	defer t.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-t.C:
-			job, err := r.jobs.ClaimNext(ctx)
-			if err != nil {
-				if err == jobs.ErrNoQueuedJobs {
-					continue
-				}
-				continue
-			}
-
-			switch job.Type {
-			case jobs.TypeUpload:
-				semUpload <- struct{}{}
-				go func(j *jobs.Job) {
-					defer func() { <-semUpload }()
-					r.runUpload(ctx, j)
-				}(job)
-			default:
-				go r.runImport(ctx, job)
-			}
-		}
+	workers := r.UploadConcurrency
+	if workers < 1 {
+		workers = 1
 	}
+
+	for i := 0; i < workers; i++ {
+		go func() {
+			t := time.NewTicker(r.PollInterval)
+			defer t.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-t.C:
+					job, err := r.jobs.ClaimNext(ctx)
+					if err != nil {
+						if err == jobs.ErrNoQueuedJobs {
+							continue
+						}
+						continue
+					}
+
+					switch job.Type {
+					case jobs.TypeUpload:
+						r.runUpload(ctx, job)
+					default:
+						r.runImport(ctx, job)
+					}
+				}
+			}
+		}()
+	}
+
+	<-ctx.Done()
 }
 
 func (r *Runner) runImport(ctx context.Context, j *jobs.Job) {
