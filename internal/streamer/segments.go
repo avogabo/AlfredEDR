@@ -254,6 +254,37 @@ func (s *Streamer) StreamRange(ctx context.Context, importID string, fileIdx int
 	if err != nil {
 		return err
 	}
+	if !writtenAny && start > 0 && nyuuMode {
+		// Fast-path for Nyuu-style posts (typically fixed decoded segment sizes around 700KiB):
+		// try a few estimated anchors near the requested range before doing a full scan from 0.
+		estSegSize := int64(716800)
+		if startIdx >= 0 && startIdx < len(layout.Segs) {
+			if p, e := s.ensureSegment(ctx, layout.Segs[startIdx]); e == nil {
+				if st, e := os.Stat(p); e == nil && st.Size() > 0 {
+					estSegSize = st.Size()
+				}
+			}
+		}
+		guessBase := int(start / estSegSize)
+		for _, d := range []int{-64, -32, -16, -8, 0, 8, 16, 32, 64} {
+			gi := guessBase + d - backtrack
+			if gi < 0 {
+				gi = 0
+			}
+			if gi >= len(layout.Segs) {
+				continue
+			}
+			goff := int64(gi) * estSegSize
+			ok, e := streamFrom(gi, goff)
+			if e != nil {
+				return e
+			}
+			if ok {
+				writtenAny = true
+				break
+			}
+		}
+	}
 	if !writtenAny && start > 0 {
 		// Resume requests (non-zero ranges) can suffer encoded-vs-decoded drift depending on uploader.
 		// Fallback to an exact scan from segment 0 to reliably locate the requested offset.
