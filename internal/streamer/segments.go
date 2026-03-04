@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -32,6 +33,14 @@ type FileLayout struct {
 	Total    int64
 	Segs     []SegmentLocator // sorted by Number
 	Offsets  []int64          // starting byte offset for each seg (same index as Segs)
+}
+
+type streamIndexHint struct {
+	ModeSig    string
+	AvgDecoded int64
+	Total      int64
+	CheckEvery int
+	Checkpoints []int64
 }
 
 func buildLayout(segs []segRow, importID string, fileIdx int) (*FileLayout, error) {
@@ -109,6 +118,26 @@ func (s *Streamer) ensureSegment(ctx context.Context, seg SegmentLocator) (strin
 	return p, nil
 }
 
+func (s *Streamer) loadStreamIndexHint(ctx context.Context, importID string, fileIdx int) *streamIndexHint {
+	qctx, cancel := context.WithTimeout(ctx, 150*time.Millisecond)
+	defer cancel()
+	var h streamIndexHint
+	var checkpointsJSON string
+	err := s.jobs.DB().SQL.QueryRowContext(qctx, `SELECT mode_signature,decoded_avg_seg_bytes,decoded_total_bytes,check_every,checkpoints_json FROM stream_index WHERE import_id=? AND file_idx=?`, importID, fileIdx).
+		Scan(&h.ModeSig, &h.AvgDecoded, &h.Total, &h.CheckEvery, &checkpointsJSON)
+	if err != nil {
+		return nil
+	}
+	_ = json.Unmarshal([]byte(checkpointsJSON), &h.Checkpoints)
+	if h.AvgDecoded <= 0 {
+		return nil
+	}
+	if h.CheckEvery <= 0 {
+		h.CheckEvery = 100
+	}
+	return &h
+}
+
 // StreamRange writes exactly [start,end] inclusive from the logical file.
 // El parámetro prefetch indica cuántos segmentos adicionales descargar anticipadamente.
 func (s *Streamer) StreamRange(ctx context.Context, importID string, fileIdx int, filename string, start, end int64, w io.Writer, prefetch int) error {
@@ -157,20 +186,63 @@ func (s *Streamer) StreamRange(ctx context.Context, importID string, fileIdx int
 		startIdx = 0
 	}
 	// Backtrack window to absorb encoded-vs-decoded drift.
-	// Nyuu-posted releases can drift more, so widen the window without full scan.
 	backtrack := 8
 	if nyuuMode {
-		// Keep startup snappy for WebDAV first-byte by limiting initial rewind.
 		backtrack = 12
-	}
-	if startIdx > backtrack {
-		startIdx -= backtrack
-	} else {
-		startIdx = 0
 	}
 	off := int64(0)
 	if startIdx < len(layout.Offsets) {
 		off = layout.Offsets[startIdx]
+	}
+
+	// Optional DB hint built at import time: use estimated decoded offsets/checkpoints
+	// to jump near requested byte range without full scan.
+	if start > 0 {
+		if h := s.loadStreamIndexHint(ctx, importID, fileIdx); h != nil && h.AvgDecoded > 0 {
+			pos := int(start / h.AvgDecoded)
+			if pos < 0 {
+				pos = 0
+			}
+			if pos >= len(layout.Segs) {
+				pos = len(layout.Segs) - 1
+			}
+			baseIdx := pos
+			baseOff := int64(baseIdx) * h.AvgDecoded
+			if h.CheckEvery > 0 {
+				k := pos / h.CheckEvery
+				if k >= 0 && k < len(h.Checkpoints) {
+					baseIdx = k * h.CheckEvery
+					baseOff = h.Checkpoints[k]
+				}
+			}
+			if baseIdx > backtrack {
+				startIdx = baseIdx - backtrack
+			} else {
+				startIdx = 0
+			}
+			off = baseOff - int64(baseIdx-startIdx)*h.AvgDecoded
+			if off < 0 {
+				off = 0
+			}
+		} else {
+			if startIdx > backtrack {
+				startIdx -= backtrack
+			} else {
+				startIdx = 0
+			}
+			if startIdx < len(layout.Offsets) {
+				off = layout.Offsets[startIdx]
+			}
+		}
+	} else {
+		if startIdx > backtrack {
+			startIdx -= backtrack
+		} else {
+			startIdx = 0
+		}
+		if startIdx < len(layout.Offsets) {
+			off = layout.Offsets[startIdx]
+		}
 	}
 
 	streamFrom := func(fromIdx int, fromOff int64) (bool, error) {
@@ -253,37 +325,6 @@ func (s *Streamer) StreamRange(ctx context.Context, importID string, fileIdx int
 	writtenAny, err = streamFrom(startIdx, off)
 	if err != nil {
 		return err
-	}
-	if !writtenAny && start > 0 && nyuuMode {
-		// Fast-path for Nyuu-style posts (typically fixed decoded segment sizes around 700KiB):
-		// try a few estimated anchors near the requested range before doing a full scan from 0.
-		estSegSize := int64(716800)
-		if startIdx >= 0 && startIdx < len(layout.Segs) {
-			if p, e := s.ensureSegment(ctx, layout.Segs[startIdx]); e == nil {
-				if st, e := os.Stat(p); e == nil && st.Size() > 0 {
-					estSegSize = st.Size()
-				}
-			}
-		}
-		guessBase := int(start / estSegSize)
-		for _, d := range []int{-64, -32, -16, -8, 0, 8, 16, 32, 64} {
-			gi := guessBase + d - backtrack
-			if gi < 0 {
-				gi = 0
-			}
-			if gi >= len(layout.Segs) {
-				continue
-			}
-			goff := int64(gi) * estSegSize
-			ok, e := streamFrom(gi, goff)
-			if e != nil {
-				return e
-			}
-			if ok {
-				writtenAny = true
-				break
-			}
-		}
 	}
 	if !writtenAny && start > 0 {
 		// Resume requests (non-zero ranges) can suffer encoded-vs-decoded drift depending on uploader.
