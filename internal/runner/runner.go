@@ -66,6 +66,12 @@ func (r *Runner) Run(ctx context.Context) {
 					defer func() { <-semUpload }()
 					r.runUpload(ctx, j)
 				}(job)
+			case jobs.TypeUploadParNZB:
+				semUpload <- struct{}{}
+				go func(j *jobs.Job) {
+					defer func() { <-semUpload }()
+					r.runUploadParNZB(ctx, j)
+				}(job)
 			default:
 				go r.runImport(ctx, job)
 			}
@@ -442,6 +448,14 @@ func (r *Runner) runUpload(ctx context.Context, j *jobs.Job) {
 							}
 						}
 						_ = r.jobs.AppendLog(ctx, j.ID, fmt.Sprintf("par: kept %d file(s) in %s", moved, keepDir))
+						
+						if moved > 0 {
+							// Enqueue async upload for these PAR2 files to create a .par.nzb
+							_, _ = r.jobs.Enqueue(ctx, jobs.TypeUploadParNZB, map[string]string{
+								"dir":       keepDir,
+								"base_name": base,
+							})
+						}
 					}
 
 					_ = r.jobs.SetDone(ctx, j.ID)
