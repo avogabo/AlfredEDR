@@ -148,7 +148,8 @@ func buildStreamIndexHint(subject string, segs []nzb.Segment) (modeSig string, a
 	if ls := strings.ToLower(subject); strings.Contains(ls, "yenc") && strings.Contains(subject, "\"") {
 		modeSig = "nyuu-yenc-quoted"
 	}
-	checkEvery = 100
+	// Denser checkpoints to prioritize fast startup/seek positioning.
+	checkEvery = 25
 	if len(segs) <= 0 {
 		checkpointsJSON = "[]"
 		return
