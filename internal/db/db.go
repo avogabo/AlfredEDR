@@ -103,6 +103,19 @@ func (d *DB) migrate() error {
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_nzb_segments_file ON nzb_segments(import_id, file_idx);`,
 
+		`CREATE TABLE IF NOT EXISTS stream_index (
+			import_id TEXT NOT NULL,
+			file_idx INTEGER NOT NULL,
+			mode_signature TEXT NOT NULL,
+			decoded_avg_seg_bytes INTEGER NOT NULL,
+			decoded_total_bytes INTEGER NOT NULL,
+			check_every INTEGER NOT NULL,
+			checkpoints_json TEXT NOT NULL,
+			updated_at INTEGER NOT NULL,
+			PRIMARY KEY(import_id, file_idx)
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_stream_index_import ON stream_index(import_id);`,
+
 		// Manual library view (UI-managed)
 		`CREATE TABLE IF NOT EXISTS manual_dirs (
 			id TEXT PRIMARY KEY,

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -89,6 +90,11 @@ func (i *Importer) ImportNZB(ctx context.Context, jobID string, path string) (fi
 		return 0, 0, err
 	}
 	defer stmtSeg.Close()
+	stmtStreamIdx, err := tx.PrepareContext(ctx, `INSERT OR REPLACE INTO stream_index(import_id,file_idx,mode_signature,decoded_avg_seg_bytes,decoded_total_bytes,check_every,checkpoints_json,updated_at) VALUES(?,?,?,?,?,?,?,?)`)
+	if err != nil {
+		return 0, 0, err
+	}
+	defer stmtStreamIdx.Close()
 
 	for idx, nf := range doc.Files {
 		var fb int64
@@ -117,6 +123,11 @@ func (i *Importer) ImportNZB(ctx context.Context, jobID string, path string) (fi
 				return 0, 0, err
 			}
 		}
+		modeSig, avgDec, totalDec, every, checkpointsJSON := buildStreamIndexHint(nf.Subject, nf.Segments)
+		_, err = stmtStreamIdx.ExecContext(ctx, importID, idx, modeSig, avgDec, totalDec, every, checkpointsJSON, now)
+		if err != nil {
+			return 0, 0, err
+		}
 	}
 
 	// Seed Manual tree from NZB path (idempotent):
@@ -130,6 +141,51 @@ func (i *Importer) ImportNZB(ctx context.Context, jobID string, path string) (fi
 		return 0, 0, err
 	}
 	return files, totalBytes, nil
+}
+
+func buildStreamIndexHint(subject string, segs []nzb.Segment) (modeSig string, avgDecoded int64, totalDecoded int64, checkEvery int, checkpointsJSON string) {
+	modeSig = "generic"
+	if ls := strings.ToLower(subject); strings.Contains(ls, "yenc") && strings.Contains(subject, "\"") {
+		modeSig = "nyuu-yenc-quoted"
+	}
+	// Denser checkpoints to prioritize fast startup/seek positioning.
+	checkEvery = 25
+	if len(segs) <= 0 {
+		checkpointsJSON = "[]"
+		return
+	}
+
+	// Sort by segment number to keep stable positional offsets.
+	ordered := make([]nzb.Segment, 0, len(segs))
+	ordered = append(ordered, segs...)
+	sort.Slice(ordered, func(i, j int) bool { return ordered[i].Number < ordered[j].Number })
+
+	var encodedTotal int64
+	for _, s := range ordered {
+		encodedTotal += s.Bytes
+	}
+	avgEncoded := encodedTotal / int64(len(ordered))
+	if avgEncoded <= 0 {
+		avgEncoded = 716800
+	}
+	avgDecoded = avgEncoded
+	if modeSig == "nyuu-yenc-quoted" {
+		// Fast and stable default for Nyuu-style posts.
+		avgDecoded = 716800
+	}
+	totalDecoded = avgDecoded * int64(len(ordered))
+
+	cps := make([]int64, 0, (len(ordered)/checkEvery)+2)
+	var off int64
+	for i := 0; i < len(ordered); i++ {
+		if i%checkEvery == 0 {
+			cps = append(cps, off)
+		}
+		off += avgDecoded
+	}
+	b, _ := json.Marshal(cps)
+	checkpointsJSON = string(b)
+	return
 }
 
 func seedManualFromNZB(ctx context.Context, tx *sql.Tx, importID, nzbPath string) error {
