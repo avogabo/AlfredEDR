@@ -170,8 +170,6 @@ func (s *Streamer) StreamRange(ctx context.Context, importID string, fileIdx int
 	}
 
 	// IMPORTANT: NZB segment bytes are often ENCODED sizes and may not match decoded payload sizes.
-	// We use encoded offsets only as a fast index hint (start near requested range),
-	// then stream using real decoded segment sizes from cache/files.
 	writtenAny := false
 
 	nyuuMode := prefetch < 0
@@ -179,58 +177,78 @@ func (s *Streamer) StreamRange(ctx context.Context, importID string, fileIdx int
 		prefetch = -prefetch
 	}
 
-	startIdx := sort.Search(len(layout.Segs), func(i int) bool {
-		return layout.Offsets[i]+layout.Segs[i].Bytes > start
-	})
-	if startIdx < 0 {
-		startIdx = 0
-	}
-	// Backtrack window to absorb encoded-vs-decoded drift.
-	// Nyuu-posted releases can drift more, so widen the window without full scan.
-	backtrack := 8
-	if nyuuMode {
-		// Keep startup snappy for WebDAV first-byte by limiting initial rewind.
-		backtrack = 12
-	}
-	if startIdx > backtrack {
-		startIdx -= backtrack
-	} else {
-		startIdx = 0
-	}
-	off := int64(0)
-	if startIdx < len(layout.Offsets) {
-		off = layout.Offsets[startIdx]
-	}
-
-	// Optional DB hint built at import time: use estimated decoded offsets/checkpoints
-	// to jump near requested byte range without full scan.
-	if start > 0 {
-		if h := s.loadStreamIndexHint(ctx, importID, fileIdx); h != nil && h.AvgDecoded > 0 {
-			pos := int(start / h.AvgDecoded)
-			if pos < 0 {
-				pos = 0
+	// 1. Determine Exact Chunk Size
+	// Almost all Usenet posts use a fixed decoded chunk size (e.g. 716800 bytes).
+	// If we find the exact chunk size, we can calculate precise offsets in O(1) time.
+	chunkSize := int64(0)
+	if len(layout.Segs) > 0 {
+		// Try to find any already downloaded segment (except the last one) to measure exact size.
+		for i := 0; i < len(layout.Segs)-1 && i < 5; i++ {
+			p := s.segCachePath(layout.Segs[i].ImportID, layout.Segs[i].FileIdx, layout.Segs[i].Number, layout.Segs[i].MessageID)
+			if st, err := os.Stat(p); err == nil && st.Size() > 0 {
+				chunkSize = st.Size()
+				break
 			}
-			if pos >= len(layout.Segs) {
-				pos = len(layout.Segs) - 1
-			}
-			baseIdx := pos
-			baseOff := int64(baseIdx) * h.AvgDecoded
-			if h.CheckEvery > 0 {
-				k := pos / h.CheckEvery
-				if k >= 0 && k < len(h.Checkpoints) {
-					baseIdx = k * h.CheckEvery
-					baseOff = h.Checkpoints[k]
+		}
+		// If none are downloaded, and we are seeking (start > 0), download Segment 0 just to measure it.
+		// This single download saves us from downloading dozens of segments to find the offset!
+		if chunkSize == 0 && start > 0 {
+			if p, err := s.ensureSegment(ctx, layout.Segs[0]); err == nil {
+				if st, err := os.Stat(p); err == nil && st.Size() > 0 {
+					chunkSize = st.Size()
 				}
 			}
-			if baseIdx > backtrack {
-				startIdx = baseIdx - backtrack
-			} else {
-				startIdx = 0
+		}
+		// If still 0 (e.g. 1-segment file), measure the last segment.
+		if chunkSize == 0 && len(layout.Segs) > 0 {
+			last := layout.Segs[len(layout.Segs)-1]
+			p := s.segCachePath(last.ImportID, last.FileIdx, last.Number, last.MessageID)
+			if st, err := os.Stat(p); err == nil && st.Size() > 0 {
+				chunkSize = st.Size()
 			}
-			off = baseOff - int64(baseIdx-startIdx)*h.AvgDecoded
-			if off < 0 {
-				off = 0
+		}
+	}
+
+	startIdx := 0
+	off := int64(0)
+
+	if chunkSize > 0 {
+		// We know the exact chunk size! The offset is simply index * chunkSize.
+		targetIdx := int(start / chunkSize)
+		if targetIdx >= len(layout.Segs) {
+			targetIdx = len(layout.Segs) - 1
+		}
+		// Small backtrack of 1 just in case of minor drift, ensuring we never overshoot.
+		startIdx = targetIdx - 1
+		if startIdx < 0 {
+			startIdx = 0
+		}
+		off = int64(startIdx) * chunkSize
+	} else {
+		// Fallback: use safe underestimate (98% of encoded size) to prevent overshooting.
+		startIdx = 0
+		off = 0
+		var safeSum int64 = 0
+		for i, seg := range layout.Segs {
+			estDecoded := int64(float64(seg.Bytes) * 0.98)
+			if safeSum + estDecoded > start {
+				startIdx = i
+				off = safeSum
+				break
 			}
+			safeSum += estDecoded
+		}
+		// Backtrack a bit more to absorb any remaining variance.
+		backtrack := 4
+		if startIdx > backtrack {
+			startIdx -= backtrack
+		} else {
+			startIdx = 0
+		}
+		// Recompute 'off' from 0 to startIdx using safe underestimate.
+		off = 0
+		for i := 0; i < startIdx; i++ {
+			off += int64(float64(layout.Segs[i].Bytes) * 0.98)
 		}
 	}
 
