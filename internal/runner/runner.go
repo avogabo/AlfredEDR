@@ -43,6 +43,7 @@ func New(j *jobs.Store) *Runner {
 
 func (r *Runner) Run(ctx context.Context) {
 	semUpload := make(chan struct{}, r.UploadConcurrency)
+	semPar := make(chan struct{}, 1) // separate concurrency queue for PAR
 	t := time.NewTicker(r.PollInterval)
 	defer t.Stop()
 
@@ -65,6 +66,12 @@ func (r *Runner) Run(ctx context.Context) {
 				go func(j *jobs.Job) {
 					defer func() { <-semUpload }()
 					r.runUpload(ctx, j)
+				}(job)
+			case jobs.TypeUploadParNZB:
+				semPar <- struct{}{}
+				go func(j *jobs.Job) {
+					defer func() { <-semPar }()
+					r.runUploadParNZB(ctx, j)
 				}(job)
 			default:
 				go r.runImport(ctx, job)
@@ -236,112 +243,18 @@ func (r *Runner) runUpload(ctx context.Context, j *jobs.Job) {
 		// Optional PAR2 generation (staged in /cache, then optionally persisted under /host/inbox/par2)
 		parEnabled := cfg.Upload.Par.Enabled && cfg.Upload.Par.RedundancyPercent > 0
 		parKeep := cfg.Upload.Par.KeepParityFiles && strings.TrimSpace(cfg.Upload.Par.Dir) != ""
-		parStagingDir := filepath.Join(cacheDir, "par-staging", j.ID)
-		var parDir string // where par2 files are generated (staging)
-		if parEnabled {
-			emitPhase("Generando PAR (Generating PAR)")
-			emitProgress(5)
-			_ = os.MkdirAll(parStagingDir, 0o755)
-
-			// NOTE: par2cmdline ignores symlinks as input files, so we must pass the real file path.
-			// We still generate parity into /cache (parStagingDir), so we avoid copying the large media file.
-			parBase := filepath.Join(parStagingDir, base)
-			inputPath := p.Path
-			args := []string{"c", fmt.Sprintf("-r%d", cfg.Upload.Par.RedundancyPercent)}
-
-			if st, err := os.Stat(inputPath); err == nil && st.IsDir() {
-				// par2 cannot create from a directory path directly; pass a file list relative to base path.
-				files := make([]string, 0, 64)
-				_ = filepath.WalkDir(inputPath, func(fp string, d os.DirEntry, err error) error {
-					if err != nil || d == nil {
-						return nil
-					}
-					name := d.Name()
-					if strings.HasPrefix(name, ".") {
-						if d.IsDir() {
-							return filepath.SkipDir
-						}
-						return nil
-					}
-					if d.IsDir() {
-						return nil
-					}
-					files = append(files, fp)
-					return nil
-				})
-				if len(files) == 0 {
-					_ = r.jobs.AppendLog(ctx, j.ID, "WARN: par2 skipped: no files found in directory input")
-					parEnabled = false
-				} else {
-					args = append(args, "-B/", parBase+".par2")
-					args = append(args, files...)
-				}
-			} else {
-				// Use par2cmdline-compatible interface for single files.
-				// par2 enforces a basepath; set it to the directory containing the source file.
-				args = append(args, "-B/", parBase+".par2", inputPath)
+		if parEnabled && parKeep {
+			relDir, err := filepath.Rel(outDir, filepath.Dir(finalNZB))
+			if err != nil {
+				relDir = ""
 			}
-			if parEnabled {
-				_ = r.jobs.AppendLog(ctx, j.ID, fmt.Sprintf("par2: generating parity"))
-			}
-			// If par2create does not emit percentages, keep UI alive by ticking progress
-			// (avoid looking stuck at 5% for large files).
-			tickDone := make(chan struct{})
-			stopTick := func() {
-				select {
-				case <-tickDone:
-					// already closed
-				default:
-					close(tickDone)
-				}
-			}
-			go func() {
-				t := time.NewTicker(10 * time.Second)
-				defer t.Stop()
-				p := 5
-				for {
-					select {
-					case <-tickDone:
-						return
-					case <-ctx.Done():
-						return
-					case <-t.C:
-						// creep up to 19 while PAR is running
-						if p < 19 {
-							p++
-							emitProgress(p)
-						}
-					}
-				}
-			}()
-
-			err := error(nil)
-			if parEnabled {
-				err = runCommand(ctx, func(line string) {
-					clean := strings.TrimSpace(line)
-					if m := rePercent.FindStringSubmatch(clean); len(m) == 2 {
-						if n, e := strconv.Atoi(m[1]); e == nil && n >= 0 && n <= 100 {
-							// Map PAR stage to early progress window (5..20)
-							p2 := 5 + (n * 15 / 100)
-							emitProgress(p2)
-						}
-						return
-					}
-					if clean != "" {
-						_ = r.jobs.AppendLog(ctx, j.ID, clean)
-					}
-				}, "par2", args...)
-			}
-			stopTick()
-			if !parEnabled {
-				// already logged
-			} else if err != nil {
-				_ = r.jobs.AppendLog(ctx, j.ID, "WARN: par2create failed (continuing without PAR): "+err.Error())
-				parEnabled = false
-			} else {
-				emitProgress(20)
-				parDir = parStagingDir
-			}
+			keepDir := filepath.Join(strings.TrimSpace(cfg.Upload.Par.Dir), relDir)
+			_ = r.jobs.AppendLog(ctx, j.ID, "Enqueuing async PAR2 generation and upload job")
+			_, _ = r.jobs.Enqueue(ctx, jobs.TypeUploadParNZB, map[string]string{
+				"input_path": p.Path,
+				"base_name":  base,
+				"final_dir":  keepDir,
+			})
 		}
 
 		// Provider implementation
@@ -352,7 +265,12 @@ func (r *Runner) runUpload(ctx context.Context, j *jobs.Job) {
 					args = append(args, "-S")
 				}
 				if ng.Connections > 0 {
-					args = append(args, "-n", fmt.Sprintf("%d", ng.Connections))
+					mediaConns := ng.Connections
+					parConns := ng.Connections / 10
+					if parConns < 1 { parConns = 1 }
+					if parConns > 5 { parConns = 5 }
+					if ng.Connections > 5 { mediaConns = ng.Connections - parConns }
+					args = append(args, "-n", fmt.Sprintf("%d", mediaConns))
 				}
 				if ng.Groups != "" {
 					args = append(args, "-g", ng.Groups)
@@ -405,45 +323,6 @@ func (r *Runner) runUpload(ctx context.Context, j *jobs.Job) {
 					}
 					emitProgress(100)
 
-					// Persist PAR2 files (keep) if enabled.
-					if parKeep && parDir != "" {
-						relDir, err := filepath.Rel(outDir, filepath.Dir(finalNZB))
-						if err != nil {
-							relDir = ""
-						}
-						keepDir := filepath.Join(strings.TrimSpace(cfg.Upload.Par.Dir), relDir)
-						_ = os.MkdirAll(keepDir, 0o755)
-						entries, _ := os.ReadDir(parDir)
-						moved := 0
-						for _, e := range entries {
-							name := e.Name()
-							if !strings.HasSuffix(strings.ToLower(name), ".par2") {
-								continue
-							}
-							src := filepath.Join(parDir, name)
-							dst := filepath.Join(keepDir, name)
-							_ = os.Remove(dst)
-							if err := os.Rename(src, dst); err == nil {
-								moved++
-								continue
-							}
-							// Cross-filesystem fallback: copy then remove.
-							if in, err := os.Open(src); err == nil {
-								defer in.Close()
-								tmp := dst + ".tmp"
-								_ = os.Remove(tmp)
-								if out, err := os.OpenFile(tmp, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644); err == nil {
-									_, _ = io.Copy(out, in)
-									_ = out.Close()
-									_ = os.Rename(tmp, dst)
-									_ = os.Remove(src)
-									moved++
-								}
-							}
-						}
-						_ = r.jobs.AppendLog(ctx, j.ID, fmt.Sprintf("par: kept %d file(s) in %s", moved, keepDir))
-					}
-
 					_ = r.jobs.SetDone(ctx, j.ID)
 					// Import is handled by the NZB watcher (watch.nzb). We just drop the NZB into the inbox.
 					return
@@ -461,7 +340,12 @@ func (r *Runner) runUpload(ctx context.Context, j *jobs.Job) {
 					args = append(args, "-s")
 				}
 				if ng.Connections > 0 {
-					args = append(args, "-n", fmt.Sprintf("%d", ng.Connections))
+					mediaConns := ng.Connections
+					parConns := ng.Connections / 10
+					if parConns < 1 { parConns = 1 }
+					if parConns > 5 { parConns = 5 }
+					if ng.Connections > 5 { mediaConns = ng.Connections - parConns }
+					args = append(args, "-n", fmt.Sprintf("%d", mediaConns))
 				}
 				if ng.Threads > 0 {
 					args = append(args, "-t", fmt.Sprintf("%d", ng.Threads))
