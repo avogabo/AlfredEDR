@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -104,6 +105,7 @@ func (w *Watcher) scanMedia(ctx context.Context) error {
 	// Avoid processing incomplete files while they are being copied into the inbox.
 	// Require the file to be unchanged for this duration before enqueueing.
 	stableFor := 60 * time.Second
+	seasonStableFor := 3 * time.Minute
 
 	isVideo := func(name string) bool {
 		low := strings.ToLower(name)
@@ -112,6 +114,11 @@ func (w *Watcher) scanMedia(ctx context.Context) error {
 	isSeasonDir := func(name string) bool {
 		low := strings.ToLower(strings.TrimSpace(name))
 		return strings.HasPrefix(low, "temporada") || strings.HasPrefix(low, "season")
+	}
+	episodeLikeRE := regexp.MustCompile(`(?i)(\b\d{1,2}x\d{1,3}\b|\bs\d{1,2}e\d{1,3}\b|\bt\d{1,2}e\d{1,3}\b|\bcap(?:itulo)?\s*\d{1,3}\b|\bep\s*\d{1,3}\b)`)
+	isEpisodeLike := func(name string) bool {
+		base := strings.TrimSuffix(name, filepath.Ext(name))
+		return episodeLikeRE.MatchString(base)
 	}
 
 	walkFn := func(path string, d fs.DirEntry, err error) error {
@@ -126,36 +133,44 @@ func (w *Watcher) scanMedia(ctx context.Context) error {
 				return fs.SkipDir
 			}
 
-			// If this looks like a season folder, enqueue it as ONE upload job (pack) and skip walking files.
+			// If this looks like a season folder, enqueue it as ONE upload job (pack) only
+			// after the *contents* are stable (not just the folder mtime).
 			if isSeasonDir(d.Name()) {
-				// Count videos inside (non-recursive is fine; season folder usually contains episodes directly)
 				vidCount := 0
+				var totalBytes int64 = 0
+				var maxMtime int64 = 0
+				hasTemp := false
 				_ = filepath.WalkDir(path, func(p string, dd fs.DirEntry, e error) error {
-					if e != nil {
+					if e != nil || dd == nil {
 						return nil
 					}
 					if dd.IsDir() {
-						if p == path {
-							return nil
-						}
-						// allow subfolders inside season
 						return nil
 					}
-					if isVideo(dd.Name()) {
-						vidCount++
-						if vidCount > 1 {
-							return fs.SkipAll
-						}
+					low := strings.ToLower(dd.Name())
+					if strings.HasSuffix(low, ".part") || strings.HasSuffix(low, ".partial") || strings.HasSuffix(low, ".tmp") || strings.HasSuffix(low, ".crdownload") {
+						hasTemp = true
+					}
+					if !isVideo(dd.Name()) {
+						return nil
+					}
+					info, ie := dd.Info()
+					if ie != nil {
+						return nil
+					}
+					vidCount++
+					totalBytes += info.Size()
+					mt := info.ModTime().Unix()
+					if mt > maxMtime {
+						maxMtime = mt
 					}
 					return nil
 				})
 
-				if vidCount >= 2 {
-					info, e := d.Info()
-					if e != nil {
-						return nil
-					}
-					if ok, _ := w.markStable(ctx, path, "media_pack_pending", "media_pack", info, stableFor); ok {
+				if vidCount >= 2 && !hasTemp {
+					// encode content fingerprint in size, and use latest file mtime as state mtime.
+					stateSize := totalBytes + int64(vidCount)
+					if ok, _ := w.markStableState(ctx, path, "media_pack_pending", "media_pack", stateSize, maxMtime, seasonStableFor); ok {
 						_, _ = w.jobs.Enqueue(ctx, jobs.TypeUpload, map[string]string{"path": path})
 					}
 					return fs.SkipDir
@@ -168,11 +183,21 @@ func (w *Watcher) scanMedia(ctx context.Context) error {
 		if !isVideo(d.Name()) {
 			return nil
 		}
+		// If this file is inside a season folder, let the season-pack logic handle enqueueing.
+		if isSeasonDir(filepath.Base(filepath.Dir(path))) {
+			return nil
+		}
 		info, err := d.Info()
 		if err != nil {
 			return nil
 		}
-		if ok, _ := w.markStable(ctx, path, "media_pending", "media", info, stableFor); ok {
+		pendingKind := "media_movie_pending"
+		readyKind := "media_movie"
+		if isEpisodeLike(d.Name()) {
+			pendingKind = "media_episode_pending"
+			readyKind = "media_episode"
+		}
+		if ok, _ := w.markStable(ctx, path, pendingKind, readyKind, info, stableFor); ok {
 			_, _ = w.jobs.Enqueue(ctx, jobs.TypeUpload, map[string]string{"path": path})
 		}
 		return nil
@@ -207,9 +232,12 @@ func (w *Watcher) markSeen(ctx context.Context, path, kind string, info fs.FileI
 // markStable returns ok=true once the item has been unchanged for at least stableFor.
 // We store seen_at as "last_changed_at" for pending kinds.
 func (w *Watcher) markStable(ctx context.Context, path, pendingKind, readyKind string, info fs.FileInfo, stableFor time.Duration) (bool, error) {
+	return w.markStableState(ctx, path, pendingKind, readyKind, info.Size(), info.ModTime().Unix(), stableFor)
+}
+
+// markStableState is like markStable, but uses explicit state fields (size/mtime-like fingerprint).
+func (w *Watcher) markStableState(ctx context.Context, path, pendingKind, readyKind string, size, mtime int64, stableFor time.Duration) (bool, error) {
 	d := w.jobs.DB().SQL
-	size := info.Size()
-	mtime := info.ModTime().Unix()
 	now := time.Now().Unix()
 	stableSecs := int64(stableFor.Seconds())
 	if stableSecs < 1 {
@@ -223,25 +251,21 @@ func (w *Watcher) markStable(ctx context.Context, path, pendingKind, readyKind s
 	err := d.QueryRowContext(ctx, `SELECT kind,size,mtime,seen_at FROM ingest_seen WHERE path=?`, path).Scan(&oldKind, &oldSize, &oldMtime, &lastChangedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			// First time we see it: mark pending and wait for stability.
 			_, err2 := d.ExecContext(ctx, `INSERT INTO ingest_seen(path,kind,size,mtime,seen_at) VALUES(?,?,?,?,?)`, path, pendingKind, size, mtime, now)
 			return false, err2
 		}
 		return false, err
 	}
 
-	// If already ready/enqueued, don't trigger again.
 	if oldKind == readyKind {
 		return false, nil
 	}
 
-	// If it changed, keep it pending and update last_changed_at.
 	if oldSize != size || oldMtime != mtime {
 		_, err = d.ExecContext(ctx, `UPDATE ingest_seen SET kind=?, size=?, mtime=?, seen_at=? WHERE path=?`, pendingKind, size, mtime, now, path)
 		return false, err
 	}
 
-	// Unchanged: if pending and old enough, mark ready.
 	if oldKind == pendingKind {
 		if now-lastChangedAt >= stableSecs {
 			_, err = d.ExecContext(ctx, `UPDATE ingest_seen SET kind=?, size=?, mtime=?, seen_at=? WHERE path=?`, readyKind, size, mtime, now, path)
@@ -250,7 +274,6 @@ func (w *Watcher) markStable(ctx context.Context, path, pendingKind, readyKind s
 		return false, nil
 	}
 
-	// Unknown kind: treat it as pending (backward compat).
 	_, err = d.ExecContext(ctx, `UPDATE ingest_seen SET kind=?, size=?, mtime=?, seen_at=? WHERE path=?`, pendingKind, size, mtime, now, path)
 	return false, err
 }

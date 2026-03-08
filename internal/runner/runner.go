@@ -198,7 +198,12 @@ func (r *Runner) runUpload(ctx context.Context, j *jobs.Job) {
 			normalizedInputPath = np
 			_ = r.jobs.AppendLog(ctx, j.ID, "filebot: normalized for naming -> "+filepath.Base(np))
 		}
-		base := strings.TrimSuffix(filepath.Base(normalizedInputPath), filepath.Ext(normalizedInputPath))
+		finalNZB := buildRawNZBPath(cfg, normalizedInputPath, outDir, sourceGuess.Quality)
+		// Use final NZB basename as canonical base name for staging and PAR naming.
+		base := strings.TrimSuffix(filepath.Base(finalNZB), filepath.Ext(finalNZB))
+		if strings.TrimSpace(base) == "" {
+			base = strings.TrimSuffix(filepath.Base(normalizedInputPath), filepath.Ext(normalizedInputPath))
+		}
 
 		// IMPORTANT: write NZB to staging first so the import watcher never sees an incomplete NZB.
 		cacheDir := cfg.Paths.CacheDir
@@ -208,8 +213,6 @@ func (r *Runner) runUpload(ctx context.Context, j *jobs.Job) {
 		stagingDir := filepath.Join(cacheDir, "nzb-staging")
 		_ = os.MkdirAll(stagingDir, 0o755)
 		stagingNZB := filepath.Join(stagingDir, fmt.Sprintf("%s-%s.nzb", base, j.ID))
-
-		finalNZB := buildRawNZBPath(cfg, normalizedInputPath, outDir, sourceGuess.Quality)
 		if st, err := os.Stat(finalNZB); err == nil && st.Size() > 0 {
 			_ = r.jobs.AppendLog(ctx, j.ID, "nzb already exists at target path; skipping new upload to avoid duplicates: "+finalNZB)
 			_ = r.jobs.SetDone(ctx, j.ID)
@@ -501,11 +504,11 @@ func copyFile(src, dst string) error {
 func detectSeasonFromName(name string) int {
 	m := reSeasonNum.FindStringSubmatch(name)
 	if len(m) == 2 {
-		if n, err := strconv.Atoi(m[1]); err == nil && n > 0 {
+		if n, err := strconv.Atoi(m[1]); err == nil && n >= 0 {
 			return n
 		}
 	}
-	return 0
+	return -1
 }
 
 func stripSeasonFromName(name string) string {
@@ -518,21 +521,21 @@ func stripSeasonFromName(name string) string {
 
 func detectSeasonFromDir(path string) int {
 	base := filepath.Base(path)
-	if n := detectSeasonFromName(base); n > 0 {
+	if n := detectSeasonFromName(base); n >= 0 {
 		return n
 	}
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		return 0
+		return -1
 	}
 	for _, e := range entries {
 		if e.IsDir() {
-			if n := detectSeasonFromName(e.Name()); n > 0 {
+			if n := detectSeasonFromName(e.Name()); n >= 0 {
 				return n
 			}
 			continue
 		}
-		if n := detectSeasonFromName(e.Name()); n > 0 {
+		if n := detectSeasonFromName(e.Name()); n >= 0 {
 			return n
 		}
 		if m := reEpisodeNum.FindString(e.Name()); m != "" {
@@ -553,7 +556,7 @@ func detectSeasonFromDir(path string) int {
 			}
 		}
 	}
-	return 0
+	return -1
 }
 
 func buildRawNZBPath(cfg config.Config, inputPath, rawRoot, qualityHint string) string {
@@ -630,13 +633,13 @@ func buildRawNZBPath(cfg config.Config, inputPath, rawRoot, qualityHint string) 
 		fileName := ""
 		if isDir {
 			season := detectSeasonFromDir(inputPath)
-			if season <= 0 {
+			if season < 0 {
 				season = detectSeasonFromName(filepath.Base(inputPath))
 			}
-			if season > 0 {
-				fileName = fmt.Sprintf("%s%s - Temporada %d.nzb", safe(seriesName), yearPart, season)
+			if season >= 0 {
+				fileName = fmt.Sprintf("%s%s Temporada %02d.nzb", safe(seriesName), yearPart, season)
 			} else {
-				fileName = fmt.Sprintf("%s%s.nzb", safe(seriesName), yearPart)
+				fileName = fmt.Sprintf("%s%s Pack.nzb", safe(seriesName), yearPart)
 			}
 		} else if g.Season > 0 && g.Episode > 0 {
 			fileName = fmt.Sprintf("%s%s %02dx%02d.nzb", safe(seriesName), yearPart, g.Season, g.Episode)
