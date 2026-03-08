@@ -1208,6 +1208,105 @@ async function enqueueSelectedImport() {
   }
 }
 
+// Upload explorer (/inbox/media)
+const UP_MEDIA_ROOT = '/inbox/media';
+let upMediaPath = UP_MEDIA_ROOT;
+let upMediaSelected = '';
+
+async function refreshUpMedia() {
+  setStatus('upMediaStatus', 'Cargando...');
+  renderCrumbs('upMediaCrumbs', upMediaPath, UP_MEDIA_ROOT, (picked) => {
+    if (!picked || !String(picked).startsWith(UP_MEDIA_ROOT)) picked = UP_MEDIA_ROOT;
+    upMediaPath = picked;
+    refreshUpMedia().catch(err => setStatus('upMediaStatus', String(err)));
+  });
+
+  const data = await apiGet(`/api/v1/hostfs/list?path=${encodeURIComponent(upMediaPath)}`);
+  const list = document.getElementById('upMediaList');
+  if (!list) return;
+  list.innerHTML = '';
+  const filterText = (document.getElementById('upMediaFilter')?.value || '').trim().toLowerCase();
+
+  for (const e of (data.entries || [])) {
+    if (filterText && !String(e.name || '').toLowerCase().includes(filterText)) continue;
+    const row = el('div', { class: 'listRow' });
+    const icon = e.is_dir ? 'DIR' : 'VID';
+    row.appendChild(el('div', { class: 'name' }, [
+      el('div', { class: 'icon', text: icon }),
+      el('div', { class: e.is_dir ? '' : 'mono', text: e.name })
+    ]));
+    row.appendChild(el('div', { class: 'mono muted', text: e.is_dir ? '' : fmtSize(e.size) }));
+    row.appendChild(el('div', { class: 'mono muted', text: fmtTime(e.mod_time) }));
+
+    row.onclick = () => {
+      if (e.is_dir) {
+        upMediaPath = e.path;
+        refreshUpMedia().catch(err => setStatus('upMediaStatus', String(err)));
+      } else {
+        upMediaSelected = e.path;
+        const sel = document.getElementById('upMediaSel');
+        if (sel) sel.textContent = `Seleccionado: ${e.name}`;
+        const btn = document.getElementById('btnUpMediaEnqueue');
+        if (btn) btn.disabled = false;
+      }
+    };
+    list.appendChild(row);
+  }
+
+  if (!upMediaPath.startsWith(UP_MEDIA_ROOT)) upMediaPath = UP_MEDIA_ROOT;
+  setStatus('upMediaStatus', `OK (${(data.entries || []).length})`);
+}
+
+function goUpUpMedia() {
+  if (upMediaPath === UP_MEDIA_ROOT) return;
+  const p = upMediaPath.split('/').filter(Boolean);
+  p.pop();
+  upMediaPath = '/' + p.join('/');
+  if (!upMediaPath.startsWith(UP_MEDIA_ROOT)) upMediaPath = UP_MEDIA_ROOT;
+  refreshUpMedia().catch(err => setStatus('upMediaStatus', String(err)));
+}
+
+async function enqueueSelectedUpMedia() {
+  if (!upMediaSelected) return;
+  const btn = document.getElementById('btnUpMediaEnqueue');
+  if (btn) btn.disabled = true;
+  try {
+    await apiPostJson('/api/v1/jobs/enqueue/upload', { path: upMediaSelected });
+    setStatus('upMediaStatus', 'Encolado (Queued)');
+  } catch (e) {
+    setStatus('upMediaStatus', 'Error: ' + String(e));
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function refreshUploadPanels() {
+  const data = await apiGet('/api/v1/uploads/summary');
+  const items = (data && data.items) ? data.items : [];
+  const active = items.filter(x => x.state === 'running' || x.state === 'queued');
+  const recent = items.slice(0, 20);
+
+  const activeBox = document.getElementById('upActive');
+  const recentBox = document.getElementById('upRecent');
+  if (activeBox) activeBox.innerHTML = '';
+  if (recentBox) recentBox.innerHTML = '';
+
+  const renderItem = (box, it) => {
+    if (!box) return;
+    const row = el('div', { class: 'listRow' });
+    row.appendChild(el('div', { class: 'name' }, [el('div', { class: 'icon', text: 'UP' }), el('div', { class: 'mono', text: it.path || it.id })]));
+    row.appendChild(el('div', { class: 'mono muted', text: String(it.progress || 0) + '%' }));
+    row.appendChild(el('div', { class: 'mono muted', text: `${it.state}${it.phase ? ' · ' + it.phase : ''}` }));
+    box.appendChild(row);
+  };
+
+  active.forEach(it => renderItem(activeBox, it));
+  recent.forEach(it => renderItem(recentBox, it));
+
+  setStatus('upActiveStatus', `Activos: ${active.length}`);
+  setStatus('upRecentStatus', `Últimos: ${recent.length}`);
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   (async () => {
     await initLibraryRoots();
@@ -1306,6 +1405,16 @@ window.addEventListener('DOMContentLoaded', () => {
         throw e;
       }
     };
+  }
+
+  // Upload explorer controls
+  if (document.getElementById('btnUpMediaRefresh')) {
+    document.getElementById('btnUpMediaRefresh').onclick = () => refreshUpMedia().catch(err => setStatus('upMediaStatus', String(err)));
+    document.getElementById('btnUpMediaUp').onclick = () => goUpUpMedia();
+    document.getElementById('btnUpMediaEnqueue').onclick = () => enqueueSelectedUpMedia().catch(err => setStatus('upMediaStatus', String(err)));
+    const f = document.getElementById('upMediaFilter');
+    if (f) f.oninput = () => refreshUpMedia().catch(err => setStatus('upMediaStatus', String(err)));
+    refreshUpMedia().catch(() => {});
   }
 
   document.getElementById('btnRestartTop').onclick = () => restartNow();

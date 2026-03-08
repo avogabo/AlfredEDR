@@ -168,7 +168,7 @@
       </div>
       <div class="hdrRight">
         <span class="muted" style="font-weight:700; color:#f2ead4; text-shadow:0 1px 1px rgba(0,0,0,.55)">Asistente Audiovisual de Enamorados Del Remux</span>
-        <span class="pill" id="buildVersionPill">v1.6.53</span>
+        <span class="pill" id="buildVersionPill">v1.6.54</span>
         <button class="btn" id="btnRestartTop">Reiniciar (Restart)</button>
       </div>
     </header>
@@ -313,7 +313,39 @@
             </div>
           </div>
 
-          <div class="grid2">
+          <div class="card" style="margin-top:10px">
+            <div class="row" style="justify-content:space-between">
+              <div>
+                <h3 style="margin:0">Reencolar media (Media inbox explorer)</h3>
+                <div class="muted">Explora <b>/inbox/media</b> y encola manualmente un archivo o carpeta.</div>
+              </div>
+              <div class="row">
+                <button class="btn" id="btnUpMediaUp">Arriba (Up)</button>
+                <button class="btn" id="btnUpMediaRefresh">Actualizar (Refresh)</button>
+                <button class="btn primary" id="btnUpMediaEnqueue" disabled>Encolar seleccionado</button>
+              </div>
+            </div>
+
+            <div class="row" style="margin-top:8px">
+              <div class="crumbs" id="upMediaCrumbs" style="flex:1"></div>
+              <input id="upMediaFilter" placeholder="Filtrar nombre..." style="min-width:220px" />
+            </div>
+
+            <div class="grid" style="margin-top:8px">
+              <div class="list">
+                <div class="listHeader">
+                  <div>Nombre (Name)</div>
+                  <div class="mono">Size</div>
+                  <div class="mono">ModTime</div>
+                </div>
+                <div id="upMediaList"></div>
+              </div>
+            </div>
+            <div class="muted" style="margin-top:8px" id="upMediaSel">(nada seleccionado)</div>
+            <div class="muted" id="upMediaStatus"></div>
+          </div>
+
+          <div class="grid2" style="margin-top:10px">
             <div class="card">
               <h3>Procesos activos (Active uploads)</h3>
               <div class="muted">Solo jobs de subida (upload).</div>
