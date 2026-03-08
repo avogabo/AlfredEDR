@@ -542,14 +542,14 @@ func detectSeasonFromDir(path string) int {
 			if strings.Contains(strings.ToLower(m), "x") {
 				parts := strings.Split(strings.ToLower(m), "x")
 				if len(parts) == 2 {
-					if n, err := strconv.Atoi(parts[0]); err == nil && n > 0 {
+					if n, err := strconv.Atoi(parts[0]); err == nil && n >= 0 {
 						return n
 					}
 				}
 			} else if strings.HasPrefix(strings.ToLower(m), "s") {
 				m = strings.TrimPrefix(strings.ToLower(m), "s")
 				if idx := strings.Index(m, "e"); idx > 0 {
-					if n, err := strconv.Atoi(m[:idx]); err == nil && n > 0 {
+					if n, err := strconv.Atoi(m[:idx]); err == nil && n >= 0 {
 						return n
 					}
 				}
