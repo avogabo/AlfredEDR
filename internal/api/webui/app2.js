@@ -821,7 +821,7 @@ async function loadUploadSettings() {
   document.getElementById('setDL_USER').value = d.user || '';
   document.getElementById('setDL_PASS').value = d.pass || '';
   document.getElementById('setDL_CONN').value = (d.connections != null) ? d.connections : 20;
-  document.getElementById('setDL_PREFETCH').value = (d.prefetch_segments != null) ? d.prefetch_segments : 50;
+  document.getElementById('setDL_PREFETCH').value = (d.prefetch_segments != null) ? d.prefetch_segments : 8;
   updateDLStreamsHint();
   setTimeout(updateDLStreamsHint, 0);
 
@@ -928,7 +928,7 @@ async function saveUploadSettings() {
     cfg.download.user = _val('setDL_USER');
     cfg.download.pass = _val('setDL_PASS');
     cfg.download.connections = _int('setDL_CONN', 20);
-    cfg.download.prefetch_segments = _int('setDL_PREFETCH', 50);
+    cfg.download.prefetch_segments = _int('setDL_PREFETCH', 8);
 
     // TMDB
     cfg.metadata = cfg.metadata || {};

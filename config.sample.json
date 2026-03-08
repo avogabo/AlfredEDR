@@ -84,7 +84,7 @@
     "user": "",
     "pass": "",
     "connections": 20,
-    "prefetch_segments": 50
+    "prefetch_segments": 8
   },
   "webdav_mount": {
     "enabled": false,
