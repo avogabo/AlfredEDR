@@ -1230,6 +1230,7 @@ async function refreshUpMedia() {
   for (const e of (data.entries || [])) {
     if (filterText && !String(e.name || '').toLowerCase().includes(filterText)) continue;
     const row = el('div', { class: 'listRow' });
+    row.style.gridTemplateColumns = '1fr 110px 190px 90px';
     const icon = e.is_dir ? 'DIR' : 'VID';
     row.appendChild(el('div', { class: 'name' }, [
       el('div', { class: 'icon', text: icon }),
@@ -1238,17 +1239,24 @@ async function refreshUpMedia() {
     row.appendChild(el('div', { class: 'mono muted', text: e.is_dir ? '' : fmtSize(e.size) }));
     row.appendChild(el('div', { class: 'mono muted', text: fmtTime(e.mod_time) }));
 
-    row.onclick = () => {
-      if (e.is_dir) {
+    const actionCell = el('div');
+    if (e.is_dir) {
+      const enterBtn = el('button', { class: 'btn', type: 'button', text: 'Entrar' });
+      enterBtn.onclick = (ev) => {
+        ev.stopPropagation();
         upMediaPath = e.path;
         refreshUpMedia().catch(err => setStatus('upMediaStatus', String(err)));
-      } else {
-        upMediaSelected = e.path;
-        const sel = document.getElementById('upMediaSel');
-        if (sel) sel.textContent = `Seleccionado: ${e.name}`;
-        const btn = document.getElementById('btnUpMediaEnqueue');
-        if (btn) btn.disabled = false;
-      }
+      };
+      actionCell.appendChild(enterBtn);
+    }
+    row.appendChild(actionCell);
+
+    row.onclick = () => {
+      upMediaSelected = e.path;
+      const sel = document.getElementById('upMediaSel');
+      if (sel) sel.textContent = `Seleccionado: ${e.name}`;
+      const btn = document.getElementById('btnUpMediaEnqueue');
+      if (btn) btn.disabled = false;
     };
     list.appendChild(row);
   }
