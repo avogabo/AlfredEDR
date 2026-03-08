@@ -41,6 +41,21 @@ func New(j *jobs.Store) *Runner {
 	return &Runner{jobs: j, UploadConcurrency: 1, PollInterval: 1 * time.Second, Mode: "stub", NgPostPath: "/usr/local/bin/ngpost", NyuuPath: "/usr/local/bin/nyuu"}
 }
 
+func (r *Runner) hasOtherRunningUpload(ctx context.Context, currentID string) bool {
+	if r == nil || r.jobs == nil || r.jobs.DB() == nil || r.jobs.DB().SQL == nil {
+		return false
+	}
+	var n int
+	err := r.jobs.DB().SQL.QueryRowContext(ctx,
+		`SELECT COUNT(1) FROM jobs WHERE type=? AND state='running' AND id<>?`,
+		string(jobs.TypeUpload), currentID,
+	).Scan(&n)
+	if err != nil {
+		return false
+	}
+	return n > 0
+}
+
 func (r *Runner) Run(ctx context.Context) {
 	semUpload := make(chan struct{}, r.UploadConcurrency)
 	semPar := make(chan struct{}, 1) // separate concurrency queue for PAR
@@ -62,6 +77,13 @@ func (r *Runner) Run(ctx context.Context) {
 
 			switch job.Type {
 			case jobs.TypeUpload:
+				// Safety guard: never run more than one media upload globally.
+				// If another upload is already marked running (e.g. duplicate runner instance),
+				// re-queue this job and continue.
+				if r.hasOtherRunningUpload(ctx, job.ID) {
+					_, _ = r.jobs.DB().SQL.ExecContext(ctx, `UPDATE jobs SET state='queued', updated_at=? WHERE id=?`, time.Now().Unix(), job.ID)
+					continue
+				}
 				semUpload <- struct{}{}
 				go func(j *jobs.Job) {
 					defer func() { <-semUpload }()
