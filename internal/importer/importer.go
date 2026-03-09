@@ -232,65 +232,102 @@ func (i *Importer) EnrichLibraryResolved(ctx context.Context, cfg config.Config,
 			name = filepath.Base(subj)
 		}
 		fileCtx, cancel := context.WithTimeout(ctx, 12*time.Second)
+
+		// Check for overrides first
+		var ovKind, ovTitle, ovQuality string
+		var ovYear, ovTMDB int
+		hasOverride := false
+		_ = db.QueryRowContext(fileCtx, `SELECT kind,title,year,quality,tmdb_id FROM library_overrides WHERE import_id=? AND file_idx=?`, importID, idx).Scan(&ovKind, &ovTitle, &ovYear, &ovQuality, &ovTMDB)
+		if strings.TrimSpace(ovTitle) != "" {
+			hasOverride = true
+		}
+
 		g := library.GuessFromFilename(name)
+		
+		if hasOverride {
+			g.Title = ovTitle
+			if ovYear > 0 { g.Year = ovYear }
+			if ovQuality != "" { g.Quality = ovQuality }
+			if ovKind == "series" { g.IsSeries = true } else { g.IsSeries = false }
+		}
+
 		fbTMDB := 0
-		if fb, ok := library.ResolveWithFileBot(fileCtx, cfg, name); ok {
-			if strings.TrimSpace(fb.Title) != "" {
-				g.Title = fb.Title
-			}
-			if fb.Year > 0 {
-				g.Year = fb.Year
-			}
-			if fb.TMDB > 0 {
-				fbTMDB = fb.TMDB
+		if !hasOverride {
+			if fb, ok := library.ResolveWithFileBot(fileCtx, cfg, name); ok {
+				if strings.TrimSpace(fb.Title) != "" {
+					g.Title = fb.Title
+				}
+				if fb.Year > 0 {
+					g.Year = fb.Year
+				}
+				if fb.TMDB > 0 {
+					fbTMDB = fb.TMDB
+				}
 			}
 		}
+
 		kind := "movie"
 		title := g.Title
 		year := g.Year
 		quality := g.Quality
 		tmdbID := 0
+		if hasOverride && ovTMDB > 0 {
+			tmdbID = ovTMDB
+		}
+
 		seriesStatus := l.EmisionFolder
 		season := g.Season
 		episode := g.Episode
 		episodeTitle := "Episode"
+
 		if g.IsSeries {
 			kind = "series"
-			if fbTMDB > 0 {
-				tmdbID = fbTMDB
-			}
-			if tv, ok := res.ResolveTV(fileCtx, title, year); ok {
-				if strings.TrimSpace(tv.Name) != "" {
-					title = tv.Name
+			if !hasOverride {
+				if fbTMDB > 0 {
+					tmdbID = fbTMDB
 				}
-				if y := tv.FirstAirYear(); y > 0 {
-					year = y
+				if tv, ok := res.ResolveTV(fileCtx, title, year); ok {
+					if strings.TrimSpace(tv.Name) != "" {
+						title = tv.Name
+					}
+					if y := tv.FirstAirYear(); y > 0 {
+						year = y
+					}
+					tmdbID = tv.ID
+					b := tmdb.MapTVStatusToBucket(tv.Status)
+					if b == tmdb.SeriesBucketFinalizada {
+						seriesStatus = l.FinalizadasFolder
+					} else {
+						seriesStatus = l.EmisionFolder
+					}
+					if season > 0 && episode > 0 {
+						if ep, ok := res.ResolveEpisodeTitle(fileCtx, tv.ID, season, episode); ok && strings.TrimSpace(ep) != "" {
+							episodeTitle = ep
+						}
+					}
 				}
-				tmdbID = tv.ID
-				b := tmdb.MapTVStatusToBucket(tv.Status)
-				if b == tmdb.SeriesBucketFinalizada {
-					seriesStatus = l.FinalizadasFolder
-				} else {
-					seriesStatus = l.EmisionFolder
-				}
-				if season > 0 && episode > 0 {
-					if ep, ok := res.ResolveEpisodeTitle(fileCtx, tv.ID, season, episode); ok && strings.TrimSpace(ep) != "" {
+			} else {
+				// If overridden as series, just keep what we have and maybe fetch episode title if we have a TMDB ID
+				if tmdbID > 0 && season > 0 && episode > 0 {
+					if ep, ok := res.ResolveEpisodeTitle(fileCtx, tmdbID, season, episode); ok && strings.TrimSpace(ep) != "" {
 						episodeTitle = ep
 					}
 				}
 			}
 		} else {
-			if fbTMDB > 0 {
-				tmdbID = fbTMDB
-			}
-			if mv, ok := res.ResolveMovie(fileCtx, title, year); ok {
-				if strings.TrimSpace(mv.Title) != "" {
-					title = mv.Title
+			if !hasOverride {
+				if fbTMDB > 0 {
+					tmdbID = fbTMDB
 				}
-				if y := mv.ReleaseYear(); y > 0 {
-					year = y
+				if mv, ok := res.ResolveMovie(fileCtx, title, year); ok {
+					if strings.TrimSpace(mv.Title) != "" {
+						title = mv.Title
+					}
+					if y := mv.ReleaseYear(); y > 0 {
+						year = y
+					}
+					tmdbID = mv.ID
 				}
-				tmdbID = mv.ID
 			}
 		}
 		if strings.TrimSpace(title) == "" {
