@@ -389,21 +389,57 @@ async function refreshList(kind) {
         actions.style.padding = '6px 10px';
         actions.onclick = async (ev) => {
           ev.stopPropagation();
-          const choice = prompt('Acción:\n1 = Borrar global (BD)\n2 = Borrado completo (BD+NZB+PAR2)\n\nEscribe 1 o 2');
+          const choice = prompt('Acción:\n1 = Borrar global (BD)\n2 = Borrado completo (BD+NZB+PAR2)\n3 = Corregir identificación (FileBot/TMDB)\n\nEscribe 1..3');
           if (!choice) return;
-          if (String(choice).trim() === '1') {
-            const ok = confirm('¿Borrar global?\n\nDesaparece de auto+manual. No borra NZB/PAR2.');
+          const c = String(choice).trim();
+          if (c === '1') {
+            const ok = confirm('¿Borrar global?\n\nDesaparece de biblioteca. No borra NZB/PAR2.');
             if (!ok) return;
             await apiPostJson('/api/v1/catalog/imports/delete', { id: e.import_id });
             await refreshList('auto');
             return;
           }
-          if (String(choice).trim() === '2') {
+          if (c === '2') {
             const ok = confirm('⚠ Borrado completo\n\nBD + mover NZB+PAR2 a .trash\n\n¿Continuar?');
             if (!ok) return;
             const typed = prompt('Escribe BORRAR para confirmar');
             if ((typed || '').trim().toUpperCase() !== 'BORRAR') return;
             await apiPostJson('/api/v1/catalog/imports/delete_full', { id: e.import_id });
+            await refreshList('auto');
+            return;
+          }
+          if (c === '3') {
+            const baseName = String(e.name || '').replace(/\.[^.]+$/, '');
+            const title = prompt('Título correcto', baseName || '');
+            if (!title) return;
+            const yearRaw = prompt('Año (opcional)', '');
+            const year = parseInt(String(yearRaw || '').trim(), 10);
+            const quality = prompt('Calidad', '1080p');
+            if (!quality) return;
+            const tmdbRaw = prompt('TMDB ID (opcional)', '');
+            const tmdb = parseInt(String(tmdbRaw || '').trim(), 10);
+
+            const applyAll = confirm('¿Aplicar a toda la importación (todos los ficheros de este NZB)?\n\nAceptar = sí, Cancelar = solo este archivo.');
+            if (applyAll) {
+              await apiPostJson('/api/v1/library/override/import', {
+                import_id: e.import_id,
+                title: String(title).trim(),
+                year: isFinite(year) ? year : 0,
+                quality: String(quality).trim(),
+                tmdb_id: isFinite(tmdb) ? tmdb : 0,
+              });
+            } else {
+              await apiPostJson('/api/v1/library/override', {
+                import_id: e.import_id,
+                file_idx: e.file_idx || 0,
+                kind: 'movie',
+                title: String(title).trim(),
+                year: isFinite(year) ? year : 0,
+                quality: String(quality).trim(),
+                tmdb_id: isFinite(tmdb) ? tmdb : 0,
+              });
+            }
+            setStatus(statusId, 'Identificación corregida. Reprocesado aplicado.');
             await refreshList('auto');
             return;
           }
