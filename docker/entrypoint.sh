@@ -10,10 +10,23 @@ export FILEBOT_HOME="${FILEBOT_HOME:-/config/filebot}"
 
 init_filebot_license() {
   local lpath="/config/filebot/license.psm"
-  mkdir -p "$FILEBOT_HOME" /config/filebot >/dev/null 2>&1 || true
+  
+  # Ensure persistent data directory exists
+  mkdir -p /config/filebot/data >/dev/null 2>&1 || true
+  
+  # Redirect portable FileBot data folder to persistent config
+  if [ -d /opt/filebot ]; then
+    rm -rf /opt/filebot/data
+    ln -sf /config/filebot/data /opt/filebot/data
+  fi
+
   if [ -x /usr/local/bin/filebot ] && [ -f "$lpath" ]; then
-    echo "[entrypoint] filebot: activating license from $lpath (home=$FILEBOT_HOME)"
-    /usr/local/bin/filebot --license "$lpath" >/tmp/filebot-license.log 2>&1 || true
+    if [ ! -f "/config/filebot/data/.license" ]; then
+      echo "[entrypoint] filebot: activating license from $lpath"
+      /usr/local/bin/filebot --license "$lpath" >/tmp/filebot-license.log 2>&1 || true
+    else
+      echo "[entrypoint] filebot: license already activated in persistent storage"
+    fi
   fi
 }
 
